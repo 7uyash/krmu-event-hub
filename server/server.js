@@ -4,6 +4,9 @@ import dotenv from 'dotenv';
 import connectDB from './config/database.js';
 import authRoutes from './routes/auth.js';
 import microsoftAuthRoutes from './routes/microsoft-auth.js';
+import eventRoutes from './routes/events.js';
+import eventAdminRoutes from './routes/events-admin.js';
+import profileRoutes from './routes/profile.js';
 
 dotenv.config();
 
@@ -24,6 +27,9 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/auth', microsoftAuthRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/events', eventAdminRoutes);
+app.use('/api/profile', profileRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

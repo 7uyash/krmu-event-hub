@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Search, CheckCircle, XCircle, ArrowLeft, Upload, Camera } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -6,13 +7,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
+import { api } from '@/lib/api';
 
 export default function ManualEntry() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const eventId = searchParams.get('eventId') || '';
   const [rollNumber, setRollNumber] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [result, setResult] = useState<{ found: boolean; name?: string; roll?: string } | null>(null);
+  const [isMarking, setIsMarking] = useState(false);
+  const [result, setResult] = useState<{ found: boolean; name?: string; roll?: string; student?: any } | null>(null);
 
   const handleSearch = async () => {
     if (!rollNumber.trim()) {
@@ -20,25 +26,53 @@ export default function ManualEntry() {
       return;
     }
 
+    if (!eventId) {
+      toast.error('Please select an event');
+      return;
+    }
+
     setIsSearching(true);
     setResult(null);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    const found = Math.random() > 0.3;
-    if (found) {
-      setResult({ found: true, name: 'Student Name', roll: rollNumber });
-    } else {
+    try {
+      const response = await api.eventsAdmin.searchStudent(eventId, rollNumber);
+      setResult({ 
+        found: true, 
+        name: response.student.name, 
+        roll: response.student.rollNumber,
+        student: response.student,
+      });
+    } catch (error: any) {
       setResult({ found: false });
+      if (error.message.includes('not found')) {
+        toast.error('Student not found');
+      } else if (error.message.includes('not registered')) {
+        toast.error('Student not registered for this event');
+      } else {
+        toast.error(error.message || 'Failed to search student');
+      }
+    } finally {
+      setIsSearching(false);
     }
-    setIsSearching(false);
   };
 
-  const handleMarkAttendance = () => {
-    toast.success(`Attendance marked for ${result?.roll}`);
-    setRollNumber('');
-    setResult(null);
+  const handleMarkAttendance = async () => {
+    if (!eventId || !result?.student) return;
+
+    setIsMarking(true);
+    try {
+      await api.eventsAdmin.markAttendance(eventId, {
+        rollNumber: result.roll!,
+        status: 'present',
+      });
+      toast.success(`Attendance marked for ${result.name} (${result.roll})`);
+      setRollNumber('');
+      setResult(null);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to mark attendance');
+    } finally {
+      setIsMarking(false);
+    }
   };
 
   return (
@@ -60,6 +94,14 @@ export default function ManualEntry() {
             <CardDescription>Enter roll number or upload ID card photo</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {!eventId && (
+              <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  Please select an event from the coordinator dashboard first.
+                </p>
+              </div>
+            )}
+            
             {/* Roll Number Input */}
             <div className="space-y-2">
               <Label htmlFor="rollNumber">Roll Number</Label>
@@ -70,8 +112,9 @@ export default function ManualEntry() {
                   value={rollNumber}
                   onChange={(e) => setRollNumber(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  disabled={!eventId}
                 />
-                <Button onClick={handleSearch} disabled={isSearching}>
+                <Button onClick={handleSearch} disabled={isSearching || !eventId}>
                   {isSearching ? (
                     <motion.div
                       animate={{ rotate: 360 }}
@@ -107,8 +150,12 @@ export default function ManualEntry() {
                         <p className="text-xs text-coordinator">Registered for this event</p>
                       </div>
                     </div>
-                    <Button variant="coordinator" onClick={handleMarkAttendance}>
-                      Mark Present
+                    <Button 
+                      variant="coordinator" 
+                      onClick={handleMarkAttendance}
+                      disabled={isMarking}
+                    >
+                      {isMarking ? 'Marking...' : 'Mark Present'}
                     </Button>
                   </div>
                 ) : (

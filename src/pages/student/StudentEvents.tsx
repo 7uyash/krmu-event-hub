@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Filter, Calendar, Grid3X3, List } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { EventCard } from '@/components/events/EventCard';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { mockEvents, mockRegistrations } from '@/data/mockData';
-import { EventCategory } from '@/types';
+import { api } from '@/lib/api';
+import { EventCategory, Event, Registration } from '@/types';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const categories: { value: EventCategory | 'all'; label: string }[] = [
   { value: 'all', label: 'All Events' },
@@ -23,12 +24,50 @@ export default function StudentEvents() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<EventCategory | 'all'>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [events, setEvents] = useState<Event[]>([]);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredEvents = mockEvents.filter((event) => {
-    const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const [eventsResponse, registrationsResponse] = await Promise.all([
+          api.events.getAll({ status: 'upcoming' }),
+          api.events.getUserRegistrations(),
+        ]);
+        
+        // Map MongoDB _id to id for frontend compatibility
+        const mappedEvents = (eventsResponse.events || []).map((event: any) => ({
+          ...event,
+          id: event._id?.toString() || event.id,
+        }));
+        setEvents(mappedEvents);
+        
+        // Map registrations
+        const mappedRegistrations = (registrationsResponse.registrations || []).map((reg: any) => ({
+          ...reg,
+          id: reg._id?.toString() || reg.id,
+          eventId: (reg.eventId?._id || reg.eventId?.id || reg.eventId)?.toString(),
+        }));
+        setRegistrations(mappedRegistrations);
+      } catch (error: any) {
+        console.error('Failed to fetch events:', error);
+        toast.error('Failed to load events');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const filteredEvents = events.filter((event) => {
+    const matchesSearch = searchQuery === '' || 
+      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       event.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || event.category === selectedCategory;
-    return matchesSearch && matchesCategory && event.status === 'upcoming';
+    return matchesSearch && matchesCategory;
   });
 
   return (
@@ -86,27 +125,33 @@ export default function StudentEvents() {
         {/* Results Count */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Showing {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''}
+            {isLoading ? 'Loading...' : `Showing ${filteredEvents.length} event${filteredEvents.length !== 1 ? 's' : ''}`}
           </p>
         </div>
 
         {/* Events Grid */}
-        <div
-          className={cn(
-            'gap-4',
-            viewMode === 'grid' ? 'grid sm:grid-cols-2 lg:grid-cols-3' : 'space-y-4'
-          )}
-        >
-          {filteredEvents.map((event) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              isRegistered={mockRegistrations.some((r) => r.eventId === event.id)}
-            />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        ) : (
+          <div
+            className={cn(
+              'gap-4',
+              viewMode === 'grid' ? 'grid sm:grid-cols-2 lg:grid-cols-3' : 'space-y-4'
+            )}
+          >
+            {filteredEvents.map((event) => (
+              <EventCard
+                key={event._id || event.id}
+                event={event}
+                isRegistered={registrations.some((r) => (r.eventId as any)?._id?.toString() === (event._id || event.id)?.toString() || r.eventId === event.id)}
+              />
+            ))}
+          </div>
+        )}
 
-        {filteredEvents.length === 0 && (
+        {!isLoading && filteredEvents.length === 0 && (
           <div className="text-center py-12">
             <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="font-semibold text-lg mb-2">No events found</h3>

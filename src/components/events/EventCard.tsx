@@ -88,7 +88,7 @@ export function EventCard({ event, showRegisterButton = true, isRegistered = fal
                 <Badge variant="success">Registered</Badge>
               ) : (
                 <Button size="sm" asChild>
-                  <Link to={`/student/events/${event.id}`}>
+                  <Link to={`/student/events/${(event as any)._id || event.id}`}>
                     View <ArrowRight className="h-4 w-4 ml-1" />
                   </Link>
                 </Button>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Calendar, Clock, MapPin, Users, Upload, Mail, Info } from 'lucide-react';
@@ -11,9 +11,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 export default function CreateEvent() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -23,21 +26,46 @@ export default function CreateEvent() {
     venue: '',
     category: '',
     totalSeats: '',
-    convenorEmail: '',
+    organizer: user?.name || '',
+    organizerDepartment: user?.department || '',
+    convenorEmail: user?.email || '',
+    coordinatorEmail: '',
     isOpen: true,
     schoolSpecific: false,
     clubOnly: false,
   });
 
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        organizer: user.name || prev.organizer,
+        organizerDepartment: user.department || prev.organizerDepartment,
+        convenorEmail: user.email || prev.convenorEmail,
+      }));
+    }
+  }, [user]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const submitData = {
+        ...formData,
+        totalSeats: formData.totalSeats ? parseInt(formData.totalSeats) : undefined,
+        isOpen: formData.isOpen,
+        isClubOnly: formData.clubOnly,
+      };
 
-    toast.success('Event created successfully!');
-    navigate('/convenor/events');
+      await api.eventsAdmin.create(submitData);
+      toast.success('Event created successfully!');
+      navigate('/convenor');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create event');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -200,6 +228,27 @@ export default function CreateEvent() {
               <CardTitle className="text-lg">Contact & Settings</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="organizer">Organizer Name *</Label>
+                <Input
+                  id="organizer"
+                  placeholder="Event organizer name"
+                  value={formData.organizer}
+                  onChange={(e) => setFormData({ ...formData, organizer: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="organizerDepartment">Organizer Department</Label>
+                <Input
+                  id="organizerDepartment"
+                  placeholder="Department name"
+                  value={formData.organizerDepartment}
+                  onChange={(e) => setFormData({ ...formData, organizerDepartment: e.target.value })}
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="convenorEmail">Convenor Email *</Label>
                 <div className="relative">

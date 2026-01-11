@@ -62,5 +62,74 @@ export const api = {
         body: JSON.stringify({ code }),
       }),
   },
+
+  // Event endpoints
+  events: {
+    getAll: (params?: { category?: string; status?: string; search?: string }) => {
+      const queryParams = new URLSearchParams();
+      if (params?.category) queryParams.append('category', params.category);
+      if (params?.status) queryParams.append('status', params.status);
+      if (params?.search) queryParams.append('search', params.search);
+      const query = queryParams.toString();
+      return api.request(`/events${query ? `?${query}` : ''}`);
+    },
+
+    getById: (eventId: string) => api.request(`/events/${eventId}`),
+
+    register: (eventId: string) =>
+      api.request(`/events/${eventId}/register`, {
+        method: 'POST',
+      }),
+
+    cancelRegistration: (eventId: string) =>
+      api.request(`/events/${eventId}/register`, {
+        method: 'DELETE',
+      }),
+
+    getUserRegistrations: () => api.request('/events/user/registrations'),
+
+    getUserAttendance: () => api.request('/events/user/attendance'),
+  },
+
+  // Profile endpoints
+  profile: {
+    update: (data: { name?: string; department?: string }) =>
+      api.request('/profile', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+  },
+
+  // Event admin endpoints (for convenors/coordinators)
+  eventsAdmin: {
+    create: (data: any) =>
+      api.request('/events', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    getMyEvents: () => api.request('/events/convenor/my-events'),
+
+    getEventRegistrations: (eventId: string) =>
+      api.request(`/events/${eventId}/registrations`),
+
+    markAttendance: (eventId: string, data: { rollNumber: string; status: 'present' | 'absent' }) =>
+      api.request(`/events/${eventId}/attendance`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    searchStudent: (eventId: string, rollNumber: string) =>
+      api.request(`/events/${eventId}/search-student/${rollNumber}`),
+
+    scanAttendance: (eventId: string, rollNumber: string) =>
+      api.request(`/events/${eventId}/scan-attendance`, {
+        method: 'POST',
+        body: JSON.stringify({ rollNumber }),
+      }),
+
+    getQRCode: (eventId: string) =>
+      api.request(`/events/${eventId}/qr-code`),
+  },
 };
 

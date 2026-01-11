@@ -5,7 +5,7 @@ import { User } from '@/types';
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  loginWithMicrosoft: (code: string) => Promise<void>;
+  loginWithMicrosoft: (code: string) => Promise<any>;
   logout: () => void;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -77,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('token', response.token);
     // Dispatch custom event for same-tab synchronization
     window.dispatchEvent(new CustomEvent('auth-change'));
+    return response; // Return response so caller can access user data
   };
 
   const logout = () => {

@@ -1,32 +1,61 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QrCode, Camera, CheckCircle, XCircle, ArrowLeft, Volume2 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
+import { api } from '@/lib/api';
 
 export default function ScanAttendance() {
+  const [searchParams] = useSearchParams();
+  const eventId = searchParams.get('eventId') || '';
   const [isScanning, setIsScanning] = useState(false);
+  const [manualRollNumber, setManualRollNumber] = useState('');
   const [lastScanned, setLastScanned] = useState<{ roll: string; name: string; status: 'success' | 'error' } | null>(null);
 
-  const handleScan = () => {
+  const handleScan = async (rollNumber?: string) => {
+    if (!eventId) {
+      toast.error('Please select an event from the coordinator dashboard');
+      return;
+    }
+
+    const rollToScan = rollNumber || manualRollNumber;
+    if (!rollToScan) {
+      toast.error('Please enter a roll number to scan');
+      return;
+    }
+
     setIsScanning(true);
-    // Simulate scan
-    setTimeout(() => {
-      const success = Math.random() > 0.2;
-      if (success) {
-        const student = { roll: '2023' + Math.floor(Math.random() * 200).toString().padStart(3, '0'), name: 'Student Name' };
-        setLastScanned({ ...student, status: 'success' });
-        toast.success(`Attendance marked for ${student.roll}`);
-      } else {
-        setLastScanned({ roll: 'N/A', name: 'Unknown', status: 'error' });
+    setLastScanned(null);
+
+    try {
+      const response = await api.eventsAdmin.scanAttendance(eventId, rollToScan);
+      setLastScanned({ 
+        roll: response.student.rollNumber, 
+        name: response.student.name, 
+        status: 'success' 
+      });
+      toast.success(`Attendance marked for ${response.student.name} (${response.student.rollNumber})`);
+      setManualRollNumber('');
+    } catch (error: any) {
+      setLastScanned({ roll: rollToScan, name: 'Unknown', status: 'error' });
+      if (error.message.includes('already marked')) {
+        toast.warning('Attendance already marked for this student');
+      } else if (error.message.includes('not found')) {
+        toast.error('Student not found');
+      } else if (error.message.includes('not registered')) {
         toast.error('Student not registered for this event');
+      } else {
+        toast.error(error.message || 'Failed to mark attendance');
       }
+    } finally {
       setIsScanning(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -77,13 +106,32 @@ export default function ScanAttendance() {
               <div className="absolute bottom-4 right-4 w-8 h-8 border-r-2 border-b-2 border-coordinator" />
             </div>
 
+            {!eventId && (
+              <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 mb-4">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  Please select an event from the coordinator dashboard first.
+                </p>
+              </div>
+            )}
+
+            {/* Manual Roll Number Input */}
+            <div className="mb-4">
+              <Input
+                placeholder="Or enter roll number manually"
+                value={manualRollNumber}
+                onChange={(e) => setManualRollNumber(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleScan()}
+                disabled={!eventId || isScanning}
+              />
+            </div>
+
             {/* Scan Button */}
             <Button
               variant="coordinator"
               size="xl"
               className="w-full"
-              onClick={handleScan}
-              disabled={isScanning}
+              onClick={() => handleScan()}
+              disabled={isScanning || !eventId}
             >
               {isScanning ? (
                 <>
@@ -98,7 +146,7 @@ export default function ScanAttendance() {
               ) : (
                 <>
                   <QrCode className="h-5 w-5" />
-                  Start Scanning
+                  {manualRollNumber ? 'Mark Attendance' : 'Start Scanning'}
                 </>
               )}
             </Button>

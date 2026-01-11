@@ -18,10 +18,15 @@ export default function Profile() {
   });
 
   const handleSave = async () => {
-    // TODO: Implement API call to update profile
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    toast.success('Profile updated successfully!');
-    setIsEditing(false);
+    try {
+      await api.profile.update(formData);
+      toast.success('Profile updated successfully!');
+      setIsEditing(false);
+      // Refresh user data
+      window.location.reload();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update profile');
+    }
   };
 
   return (

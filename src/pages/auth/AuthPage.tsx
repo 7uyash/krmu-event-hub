@@ -47,7 +47,7 @@ export default function AuthPage() {
   const { role = 'student' } = useParams<{ role: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { loginWithMicrosoft } = useAuth();
+  const { loginWithMicrosoft, user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const config = roleConfig[role] || roleConfig.student;
@@ -74,15 +74,17 @@ export default function AuthPage() {
   const handleMicrosoftCallback = async (code: string) => {
     setIsLoading(true);
     try {
-      await loginWithMicrosoft(code);
+      const response = await loginWithMicrosoft(code);
       toast.success('Logged in successfully!');
-      navigate(config.redirectPath);
+      
+      // Redirect based on user's actual role from the API response, not URL
+      const actualRole = response.user?.role || 'student';
+      const redirectPath = roleConfig[actualRole]?.redirectPath || '/student';
+      navigate(redirectPath, { replace: true });
     } catch (error: any) {
       toast.error(error.message || 'Authentication failed');
     } finally {
       setIsLoading(false);
-      // Remove code from URL
-      navigate(window.location.pathname, { replace: true });
     }
   };
 
@@ -154,14 +156,14 @@ export default function AuthPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="space-y-2">
+                    <div className="space-y-2">
                   <p className="text-sm text-muted-foreground text-center">
                     Use your @krmu.edu.in email address to sign in
                   </p>
                 </div>
 
                 <Button
-                  type="button"
+                      type="button"
                   className="w-full"
                   size="lg"
                   onClick={handleMicrosoftLogin}

@@ -1,26 +1,55 @@
+import { useState, useEffect } from 'react';
 import { Calendar, CheckCircle, XCircle, Download, TrendingUp } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { mockEvents, mockRegistrations } from '@/data/mockData';
+import { api } from '@/lib/api';
+import { exportToCSV, formatAttendanceData } from '@/lib/export';
+import { Registration, Event } from '@/types';
+import { toast } from 'sonner';
+
+interface AttendanceHistory extends Registration {
+  event?: Event;
+}
 
 export default function StudentAttendance() {
-  const completedEvents = mockRegistrations.filter((r) => r.attendanceStatus !== 'pending');
+  const [attendanceHistory, setAttendanceHistory] = useState<AttendanceHistory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      try {
+        setIsLoading(true);
+        const response = await api.events.getUserAttendance();
+        const history = (response.registrations || []).map((reg: any) => ({
+          id: reg._id || reg.id,
+          eventId: (reg.eventId?._id || reg.eventId?.id || reg.eventId)?.toString(),
+          userId: (reg.userId?._id || reg.userId?.id || reg.userId)?.toString(),
+          registeredAt: reg.registeredAt,
+          attendanceStatus: reg.attendanceStatus,
+          markedAt: reg.markedAt,
+          event: reg.eventId || reg.event,
+        }));
+        setAttendanceHistory(history.filter((r: any) => r.event));
+      } catch (error: any) {
+        console.error('Failed to fetch attendance:', error);
+        toast.error('Failed to load attendance history');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAttendance();
+  }, []);
+
+  const completedEvents = attendanceHistory.filter((r) => r.attendanceStatus !== 'pending');
   const presentCount = completedEvents.filter((r) => r.attendanceStatus === 'present').length;
   const absentCount = completedEvents.filter((r) => r.attendanceStatus === 'absent').length;
   const attendanceRate = completedEvents.length > 0 
     ? Math.round((presentCount / completedEvents.length) * 100) 
     : 0;
-
-  const attendanceHistory = mockRegistrations
-    .filter((r) => r.attendanceStatus !== 'pending')
-    .map((reg) => ({
-      ...reg,
-      event: mockEvents.find((e) => e.id === reg.eventId),
-    }))
-    .filter((r) => r.event);
 
   return (
     <DashboardLayout role="student">
@@ -31,7 +60,22 @@ export default function StudentAttendance() {
             <h1 className="text-2xl font-bold">Attendance History</h1>
             <p className="text-muted-foreground">Track your event participation</p>
           </div>
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={() => {
+              if (attendanceHistory.length === 0) {
+                toast.error('No attendance data to export');
+                return;
+              }
+              const formatted = attendanceHistory.map((reg) => ({
+                ...reg,
+                userId: reg.event?.organizer || { name: 'N/A', rollNumber: 'N/A', email: 'N/A' },
+                attendanceStatus: reg.attendanceStatus,
+              }));
+              exportToCSV(formatAttendanceData(formatted as any[]), 'my-attendance');
+              toast.success('Attendance report downloaded');
+            }}
+          >
             <Download className="h-4 w-4 mr-2" />
             Download Report
           </Button>
@@ -91,7 +135,11 @@ export default function StudentAttendance() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {attendanceHistory.length > 0 ? (
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                </div>
+              ) : attendanceHistory.length > 0 ? (
                 attendanceHistory.map((item, index) => (
                   <div key={item.id} className="flex gap-4">
                     <div className="flex flex-col items-center">
@@ -125,14 +173,16 @@ export default function StudentAttendance() {
                         </Badge>
                       </div>
                       <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {new Date(item.event!.date).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </span>
+                        {item.event?.date && (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            {new Date(item.event.date).toLocaleDateString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        )}
                         {item.markedAt && (
                           <span>
                             Marked at {new Date(item.markedAt).toLocaleTimeString('en-IN', {

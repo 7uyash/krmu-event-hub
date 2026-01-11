@@ -7,8 +7,8 @@ import Student from '../models/Student.js';
 const router = express.Router();
 
 // Generate JWT token
-const generateToken = (userId) => {
-  return jwt.sign({ userId, role: 'student' }, process.env.JWT_SECRET, {
+const generateToken = (userId, userRole = 'student') => {
+  return jwt.sign({ userId, role: userRole }, process.env.JWT_SECRET, {
     expiresIn: '7d',
   });
 };
@@ -98,8 +98,8 @@ router.post('/microsoft/callback', async (req, res) => {
       await student.save();
     }
 
-    // Generate JWT token
-    const token = generateToken(student._id);
+    // Generate JWT token with user's actual role
+    const token = generateToken(student._id, student.role);
 
     res.json({
       message: 'Login successful',
@@ -110,7 +110,7 @@ router.post('/microsoft/callback', async (req, res) => {
         email: student.email,
         rollNumber: student.rollNumber,
         department: student.department,
-        role: 'student',
+        role: student.role || 'student',
       },
     });
   } catch (error) {

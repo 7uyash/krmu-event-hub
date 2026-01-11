@@ -11,10 +11,13 @@ import {
   QrCode,
   ArrowRight,
   CheckCircle,
+  Sparkles,
+  Menu,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import heroBg from '@/assets/hero-bg.jpg';
+import { useState } from 'react';
 
 const features = [
   {
@@ -45,7 +48,7 @@ const roleCards = [
     icon: GraduationCap,
     title: 'Student',
     description: 'Browse events, register, and track your participation',
-    gradient: 'bg-gradient-student',
+    color: 'hsl(var(--student))',
     link: '/auth/student',
   },
   {
@@ -53,7 +56,7 @@ const roleCards = [
     icon: ClipboardCheck,
     title: 'Coordinator',
     description: 'Mark attendance using QR scan or manual entry',
-    gradient: 'bg-gradient-coordinator',
+    color: 'hsl(var(--coordinator))',
     link: '/auth/coordinator',
   },
   {
@@ -61,7 +64,7 @@ const roleCards = [
     icon: Users,
     title: 'Convenor',
     description: 'Create events and manage registrations',
-    gradient: 'bg-gradient-convenor',
+    color: 'hsl(var(--convenor))',
     link: '/auth/convenor',
   },
   {
@@ -69,7 +72,7 @@ const roleCards = [
     icon: Building2,
     title: 'Club Admin',
     description: 'Manage club events and member activities',
-    gradient: 'bg-club',
+    color: 'hsl(var(--club))',
     link: '/auth/club',
   },
   {
@@ -77,48 +80,159 @@ const roleCards = [
     icon: Shield,
     title: 'Super Admin',
     description: 'University-wide oversight and analytics',
-    gradient: 'bg-gradient-admin',
+    color: 'hsl(var(--admin))',
     link: '/auth/admin',
   },
 ];
 
 export default function Landing() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4">
+          <div className="flex h-16 items-center justify-between">
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Sparkles className="h-6 w-6 text-primary" />
+              </div>
+              <span className="text-xl font-bold">E-Attend</span>
+            </Link>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-8">
+              <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                Features
+              </a>
+              <a href="#login" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                Get Started
+              </a>
+              <Button asChild>
+                <Link to="/auth/student">Login</Link>
+              </Button>
+            </nav>
+
+            {/* Mobile Menu Button */}
+            <button
+              className="md:hidden p-2"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </button>
+          </div>
+
+          {/* Mobile Navigation */}
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden py-4 border-t"
+            >
+              <nav className="flex flex-col gap-4">
+                <a
+                  href="#features"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Features
+                </a>
+                <a
+                  href="#login"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Get Started
+                </a>
+                <Button asChild className="w-full">
+                  <Link to="/auth/student" onClick={() => setMobileMenuOpen(false)}>Login</Link>
+                </Button>
+              </nav>
+            </motion.div>
+          )}
+        </div>
+      </header>
+
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${heroBg})` }}
-        />
-        <div className="absolute inset-0 bg-gradient-hero opacity-90" />
+      <section className="relative min-h-[90vh] md:min-h-[95vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-background via-background to-muted/30">
+        <div className="absolute inset-0 overflow-hidden">
+          {/* Subtle geometric pattern */}
+          <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
+            <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full bg-foreground blur-3xl" />
+            <div className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full bg-foreground blur-3xl" />
+          </div>
+        </div>
         
-        <div className="relative z-10 container mx-auto px-4 py-20 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <h1 className="text-5xl md:text-7xl font-bold text-primary-foreground mb-6">
+        <div className="relative z-10 container mx-auto px-4 py-20">
+          <div className="max-w-5xl mx-auto text-center">
+            {/* Visual Icon */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6 }}
+              className="mb-12 flex justify-center"
+            >
+              <div className="relative">
+                <div className="w-32 h-32 md:w-40 md:h-40 rounded-3xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                  <Sparkles className="h-16 w-16 md:h-20 md:w-20 text-primary" />
+                </div>
+                <motion.div
+                  className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-primary/20"
+                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
+                  transition={{ repeat: Infinity, duration: 2 }}
+                />
+                <motion.div
+                  className="absolute -bottom-3 -left-3 w-6 h-6 rounded-full bg-primary/20"
+                  animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.8, 0.5] }}
+                  transition={{ repeat: Infinity, duration: 2, delay: 0.5 }}
+                />
+              </div>
+            </motion.div>
+
+            {/* Main Title */}
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="text-6xl md:text-8xl font-bold mb-8"
+            >
               E-Attend
-            </h1>
-            <p className="text-xl md:text-2xl text-primary-foreground/90 mb-4 max-w-2xl mx-auto">
-              University Event & Attendance Management Platform
-            </p>
-            <p className="text-lg text-primary-foreground/70 mb-8">
-              K. R. Mangalam University
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="xl" variant="secondary" asChild>
+            </motion.h1>
+
+            {/* Subtitle */}
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="text-2xl md:text-3xl text-muted-foreground mb-12 max-w-3xl mx-auto font-light"
+            >
+              Event & Attendance Management Platform
+            </motion.p>
+
+            {/* CTA Buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="flex flex-col sm:flex-row gap-4 justify-center"
+            >
+              <Button size="xl" className="text-lg px-8 py-6" asChild>
                 <a href="#login">
                   Get Started <ArrowRight className="ml-2 h-5 w-5" />
                 </a>
               </Button>
-              <Button size="xl" variant="hero-outline" asChild>
+              <Button size="xl" variant="outline" className="text-lg px-8 py-6" asChild>
                 <a href="#features">Learn More</a>
               </Button>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </div>
 
         {/* Scroll indicator */}
@@ -127,8 +241,8 @@ export default function Landing() {
           animate={{ y: [0, 10, 0] }}
           transition={{ repeat: Infinity, duration: 2 }}
         >
-          <div className="w-6 h-10 border-2 border-primary-foreground/30 rounded-full flex justify-center">
-            <div className="w-1.5 h-3 bg-primary-foreground/50 rounded-full mt-2" />
+          <div className="w-6 h-10 border-2 border-muted-foreground/30 rounded-full flex justify-center">
+            <div className="w-1.5 h-3 bg-muted-foreground/50 rounded-full mt-2" />
           </div>
         </motion.div>
       </section>
@@ -146,7 +260,7 @@ export default function Landing() {
               Everything You Need
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              A comprehensive platform designed for seamless event management and attendance tracking
+              A comprehensive platform for seamless event management and attendance tracking
             </p>
           </motion.div>
 
@@ -159,7 +273,7 @@ export default function Landing() {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card variant="elevated" className="h-full">
+                <Card variant="elevated" className="h-full border">
                   <CardContent className="p-6 text-center">
                     <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                       <feature.icon className="h-7 w-7 text-primary" />
@@ -184,7 +298,7 @@ export default function Landing() {
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Choose Your Role
+              Get Started
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               Select your role to access the platform
@@ -203,18 +317,24 @@ export default function Landing() {
                 <Link to={card.link}>
                   <Card
                     variant="interactive"
-                    className="h-full group overflow-hidden"
+                    className="h-full group overflow-hidden border hover:shadow-lg transition-shadow"
                   >
-                    <div className={`h-24 ${card.gradient} flex items-center justify-center`}>
-                      <card.icon className="h-10 w-10 text-primary-foreground" />
+                    <div 
+                      className="h-20 flex items-center justify-center"
+                      style={{ backgroundColor: `${card.color}15` }}
+                    >
+                      <card.icon 
+                        className="h-10 w-10 transition-transform group-hover:scale-110"
+                        style={{ color: card.color }}
+                      />
                     </div>
                     <CardContent className="p-5 text-center">
                       <h3 className="font-bold text-lg mb-2">{card.title}</h3>
-                      <p className="text-sm text-muted-foreground">{card.description}</p>
+                      <p className="text-sm text-muted-foreground mb-4">{card.description}</p>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="mt-4 group-hover:bg-accent"
+                        className="w-full group-hover:bg-accent"
                       >
                         Login <ArrowRight className="ml-1 h-4 w-4" />
                       </Button>
@@ -228,11 +348,11 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-foreground text-background py-12">
+      <footer className="bg-muted/50 py-12 border-t">
         <div className="container mx-auto px-4 text-center">
           <h3 className="text-2xl font-bold mb-2">E-Attend</h3>
-          <p className="text-background/70 mb-6">K. R. Mangalam University</p>
-          <p className="text-sm text-background/50">
+          <p className="text-muted-foreground mb-6">K. R. Mangalam University</p>
+          <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} E-Attend. All rights reserved.
           </p>
         </div>

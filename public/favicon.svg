@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Background with gradient -->
+  <rect width="64" height="64" rx="14" fill="url(#gradient)"/>
+  
+  <!-- Sparkles/Star Icon -->
+  <path d="M32 14L35 24H45L37 30L40 40L32 34L24 40L27 30L19 24H29L32 14Z" fill="white" opacity="0.98"/>
+  
+  <!-- Accent dots -->
+  <circle cx="26" cy="26" r="2" fill="white" opacity="0.6"/>
+  <circle cx="38" cy="26" r="2" fill="white" opacity="0.6"/>
+  
+  <defs>
+    <linearGradient id="gradient" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+</svg>

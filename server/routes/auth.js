@@ -337,7 +337,7 @@ router.get('/me', async (req, res) => {
         email: student.email,
         rollNumber: student.rollNumber,
         department: student.department,
-        role: 'student',
+        role: student.role || 'student',
       },
     });
   } catch (error) {

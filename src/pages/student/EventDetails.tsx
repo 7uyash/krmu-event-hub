@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Calendar,
@@ -17,9 +17,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { mockEvents, mockRegistrations } from '@/data/mockData';
+import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import { EventCategory } from '@/types';
+import { EventCategory, Event } from '@/types';
 
 const categoryConfig: Record<EventCategory, { label: string; variant: 'student' | 'coordinator' | 'convenor' | 'admin' | 'club' }> = {
   workshop: { label: 'Workshop', variant: 'student' },
@@ -32,10 +32,46 @@ const categoryConfig: Record<EventCategory, { label: string; variant: 'student' 
 
 export default function EventDetails() {
   const { eventId } = useParams<{ eventId: string }>();
+  const navigate = useNavigate();
+  const [event, setEvent] = useState<Event | null>(null);
+  const [isRegistered, setIsRegistered] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const event = mockEvents.find((e) => e.id === eventId);
-  const isRegistered = mockRegistrations.some((r) => r.eventId === eventId);
+  useEffect(() => {
+    const fetchEvent = async () => {
+      if (!eventId) return;
+      
+      try {
+        setIsLoading(true);
+        const response = await api.events.getById(eventId);
+        // Map MongoDB _id to id for frontend compatibility
+        const mappedEvent = {
+          ...response.event,
+          id: response.event._id?.toString() || response.event.id,
+        };
+        setEvent(mappedEvent);
+        setIsRegistered(response.isRegistered);
+      } catch (error: any) {
+        console.error('Failed to fetch event:', error);
+        toast.error(error.message || 'Failed to load event');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEvent();
+  }, [eventId]);
+
+  if (isLoading) {
+    return (
+      <DashboardLayout role="student">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   if (!event) {
     return (
@@ -57,10 +93,47 @@ export default function EventDetails() {
     : 0;
 
   const handleRegister = async () => {
+    if (!eventId) return;
+    
     setIsRegistering(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast.success('Successfully registered for the event!');
-    setIsRegistering(false);
+    try {
+      await api.events.register(eventId);
+      setIsRegistered(true);
+      toast.success('Successfully registered for the event!');
+      // Refresh event data to update registered count
+      const response = await api.events.getById(eventId);
+      const mappedEvent = {
+        ...response.event,
+        id: response.event._id?.toString() || response.event.id,
+      };
+      setEvent(mappedEvent);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to register for event');
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
+  const handleCancelRegistration = async () => {
+    if (!eventId) return;
+    
+    setIsRegistering(true);
+    try {
+      await api.events.cancelRegistration(eventId);
+      setIsRegistered(false);
+      toast.success('Registration cancelled successfully');
+      // Refresh event data to update registered count
+      const response = await api.events.getById(eventId);
+      const mappedEvent = {
+        ...response.event,
+        id: response.event._id?.toString() || response.event.id,
+      };
+      setEvent(mappedEvent);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to cancel registration');
+    } finally {
+      setIsRegistering(false);
+    }
   };
 
   return (
@@ -172,22 +245,39 @@ export default function EventDetails() {
               {/* Actions */}
               <div className="flex flex-wrap gap-3">
                 {isRegistered ? (
-                  <Button variant="student" disabled className="flex-1 sm:flex-none">
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Already Registered
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={handleCancelRegistration}
+                    disabled={isRegistering}
+                    className="flex-1 sm:flex-none"
+                  >
+                    {isRegistering ? 'Cancelling...' : (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Cancel Registration
+                      </>
+                    )}
                   </Button>
                 ) : (
                   <Button
                     variant="student"
                     size="lg"
                     onClick={handleRegister}
-                    disabled={isRegistering || (seatsAvailable !== null && seatsAvailable === 0)}
+                    disabled={isRegistering || !event.isOpen || (seatsAvailable !== null && seatsAvailable === 0)}
                     className="flex-1 sm:flex-none"
                   >
                     {isRegistering ? 'Registering...' : 'Register Now'}
                   </Button>
                 )}
-                <Button variant="outline" size="lg">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    toast.success('Event link copied to clipboard!');
+                  }}
+                >
                   <Share2 className="h-4 w-4 mr-2" />
                   Share
                 </Button>
