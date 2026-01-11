@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { mockEvents, mockRegistrations, mockUser } from '@/data/mockData';
+import { mockEvents, mockRegistrations } from '@/data/mockData';
 
 export default function StudentAttendance() {
   const completedEvents = mockRegistrations.filter((r) => r.attendanceStatus !== 'pending');
@@ -23,7 +23,7 @@ export default function StudentAttendance() {
     .filter((r) => r.event);
 
   return (
-    <DashboardLayout role="student" userName={mockUser.name}>
+    <DashboardLayout role="student">
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex items-center justify-between">

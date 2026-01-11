@@ -1,5 +1,5 @@
 import { ReactNode, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Home,
@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { UserRole } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -37,6 +38,7 @@ const roleConfig = {
       { to: '/student/events', icon: Calendar, label: 'Events' },
       { to: '/student/registrations', icon: ClipboardList, label: 'My Registrations' },
       { to: '/student/attendance', icon: BarChart3, label: 'Attendance History' },
+      { to: '/student/profile', icon: UserCircle, label: 'Profile' },
     ],
   },
   coordinator: {
@@ -89,10 +91,20 @@ const roleLabels: Record<UserRole, string> = {
   admin: 'Super Admin',
 };
 
-export function DashboardLayout({ children, role, userName = 'User' }: DashboardLayoutProps) {
+export function DashboardLayout({ children, role, userName }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout, user } = useAuth();
   const config = roleConfig[role];
+  
+  // Use authenticated user name if available, otherwise fallback to prop or default
+  const displayName = userName || user?.name || (role === 'student' ? 'Student' : role === 'coordinator' ? 'Coordinator' : role === 'convenor' ? 'Convenor' : role === 'club' ? 'Club Admin' : 'Admin');
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -152,7 +164,7 @@ export function DashboardLayout({ children, role, userName = 'User' }: Dashboard
               <UserCircle className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
-              <p className="font-semibold text-sm">{userName}</p>
+              <p className="font-semibold text-sm">{displayName}</p>
               <Badge variant={role} className="mt-1">
                 {role.charAt(0).toUpperCase() + role.slice(1)}
               </Badge>
@@ -185,13 +197,13 @@ export function DashboardLayout({ children, role, userName = 'User' }: Dashboard
 
         {/* Footer */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t">
-          <Link
-            to="/"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
           >
             <LogOut className="h-5 w-5" />
             <span className="font-medium">Logout</span>
-          </Link>
+          </button>
         </div>
       </aside>
 
@@ -200,7 +212,7 @@ export function DashboardLayout({ children, role, userName = 'User' }: Dashboard
         {/* Desktop Header */}
         <header className="hidden lg:flex items-center justify-between h-20 px-8 border-b bg-card">
           <div>
-            <h2 className="font-semibold text-lg">Welcome back, {userName}!</h2>
+            <h2 className="font-semibold text-lg">Welcome back, {displayName}!</h2>
             <p className="text-sm text-muted-foreground">K. R. Mangalam University</p>
           </div>
           <div className="flex items-center gap-4">

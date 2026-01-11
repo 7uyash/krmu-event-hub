@@ -5,7 +5,7 @@ import { EventCard } from '@/components/events/EventCard';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { mockEvents, mockRegistrations, mockUser } from '@/data/mockData';
+import { mockEvents, mockRegistrations } from '@/data/mockData';
 import { EventCategory } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -32,7 +32,7 @@ export default function StudentEvents() {
   });
 
   return (
-    <DashboardLayout role="student" userName={mockUser.name}>
+    <DashboardLayout role="student">
       <div className="space-y-6">
         {/* Page Header */}
         <div>

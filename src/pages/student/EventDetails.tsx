@@ -17,7 +17,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { mockEvents, mockRegistrations, mockUser } from '@/data/mockData';
+import { mockEvents, mockRegistrations } from '@/data/mockData';
 import { toast } from 'sonner';
 import { EventCategory } from '@/types';
 
@@ -39,7 +39,7 @@ export default function EventDetails() {
 
   if (!event) {
     return (
-      <DashboardLayout role="student" userName={mockUser.name}>
+      <DashboardLayout role="student">
         <div className="text-center py-12">
           <h1 className="text-2xl font-bold mb-4">Event Not Found</h1>
           <Button asChild>
@@ -64,7 +64,7 @@ export default function EventDetails() {
   };
 
   return (
-    <DashboardLayout role="student" userName={mockUser.name}>
+    <DashboardLayout role="student">
       <div className="space-y-6 max-w-4xl">
         {/* Back Button */}
         <Link

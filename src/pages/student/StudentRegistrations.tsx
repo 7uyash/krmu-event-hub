@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { mockEvents, mockRegistrations, mockUser } from '@/data/mockData';
+import { mockEvents, mockRegistrations } from '@/data/mockData';
 import { Link } from 'react-router-dom';
 
 export default function StudentRegistrations() {
@@ -14,7 +14,7 @@ export default function StudentRegistrations() {
   })).filter((r) => r.event);
 
   return (
-    <DashboardLayout role="student" userName={mockUser.name}>
+    <DashboardLayout role="student">
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex items-center justify-between">

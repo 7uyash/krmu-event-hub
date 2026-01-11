@@ -1,49 +1,44 @@
-import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, ArrowLeft, Eye, EyeOff, GraduationCap, ClipboardCheck, Users, Building2, Shield } from 'lucide-react';
+import { ArrowLeft, GraduationCap, ClipboardCheck, Users, Building2, Shield, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { UserRole } from '@/types';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
+import { api } from '@/lib/api';
 
-const roleConfig: Record<string, { label: string; icon: typeof GraduationCap; gradient: string; emailHint: string; redirectPath: string }> = {
+const roleConfig: Record<string, { label: string; icon: typeof GraduationCap; gradient: string; redirectPath: string }> = {
   student: {
     label: 'Student',
     icon: GraduationCap,
     gradient: 'bg-gradient-student',
-    emailHint: 'rollnumber@krmu.edu.in',
     redirectPath: '/student',
   },
   coordinator: {
     label: 'Coordinator',
     icon: ClipboardCheck,
     gradient: 'bg-gradient-coordinator',
-    emailHint: 'coordinator.eventid@krmu.edu.in',
     redirectPath: '/coordinator',
   },
   convenor: {
     label: 'Convenor',
     icon: Users,
     gradient: 'bg-gradient-convenor',
-    emailHint: 'convenor@krmu.edu.in',
     redirectPath: '/convenor',
   },
   club: {
     label: 'Club Admin',
     icon: Building2,
     gradient: 'bg-club',
-    emailHint: 'club.admin@krmu.edu.in',
     redirectPath: '/club',
   },
   admin: {
     label: 'Super Admin',
     icon: Shield,
     gradient: 'bg-gradient-admin',
-    emailHint: 'admin@krmu.edu.in',
     redirectPath: '/admin',
   },
 };
@@ -51,25 +46,56 @@ const roleConfig: Record<string, { label: string; icon: typeof GraduationCap; gr
 export default function AuthPage() {
   const { role = 'student' } = useParams<{ role: string }>();
   const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(true);
-  const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [searchParams] = useSearchParams();
+  const { loginWithMicrosoft } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const config = roleConfig[role] || roleConfig.student;
   const Icon = config.icon;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Handle Microsoft OAuth callback
+  useEffect(() => {
+    const code = searchParams.get('code');
+    const error = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
+
+    if (error) {
+      toast.error(errorDescription || 'Authentication failed');
+      // Remove error params from URL
+      navigate(window.location.pathname, { replace: true });
+      return;
+    }
+
+    if (code) {
+      handleMicrosoftCallback(code);
+    }
+  }, [searchParams]);
+
+  const handleMicrosoftCallback = async (code: string) => {
     setIsLoading(true);
+    try {
+      await loginWithMicrosoft(code);
+      toast.success('Logged in successfully!');
+      navigate(config.redirectPath);
+    } catch (error: any) {
+      toast.error(error.message || 'Authentication failed');
+    } finally {
+      setIsLoading(false);
+      // Remove code from URL
+      navigate(window.location.pathname, { replace: true });
+    }
+  };
 
-    // Simulate authentication
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    toast.success(isLogin ? 'Logged in successfully!' : 'Account created successfully!');
-    navigate(config.redirectPath);
-    setIsLoading(false);
+  const handleMicrosoftLogin = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.auth.getMicrosoftAuthUrl();
+      // Redirect to Microsoft login
+      window.location.href = response.authUrl;
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to initiate login');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -120,87 +146,35 @@ export default function AuthPage() {
                 </div>
               </div>
               <CardTitle className="text-2xl hidden lg:block">
-                {isLogin ? 'Welcome back' : 'Create account'}
+                Welcome to E-Attend
               </CardTitle>
               <CardDescription>
-                {isLogin
-                  ? 'Enter your credentials to access your account'
-                  : 'Fill in your details to get started'}
+                Sign in with your K. R. Mangalam University Microsoft account
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder={config.emailHint}
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
+                  <p className="text-sm text-muted-foreground text-center">
+                    Use your @krmu.edu.in email address to sign in
+                  </p>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                {isLogin && (
-                  <div className="text-right">
-                    <Link
-                      to="/auth/forgot-password"
-                      className="text-sm text-primary hover:underline"
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
-                )}
 
                 <Button
-                  type="submit"
+                  type="button"
                   className="w-full"
                   size="lg"
+                  onClick={handleMicrosoftLogin}
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Please wait...' : isLogin ? 'Sign In' : 'Sign Up'}
+                  <Mail className="h-5 w-5 mr-2" />
+                  {isLoading ? 'Redirecting...' : 'Sign in with Microsoft'}
                 </Button>
-              </form>
 
-              <div className="mt-6 text-center text-sm">
-                <span className="text-muted-foreground">
-                  {isLogin ? "Don't have an account? " : 'Already have an account? '}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setIsLogin(!isLogin)}
-                  className="text-primary hover:underline font-medium"
-                >
-                  {isLogin ? 'Sign up' : 'Sign in'}
-                </button>
+                <div className="text-center text-xs text-muted-foreground space-y-1">
+                  <p>Only @krmu.edu.in email addresses are allowed</p>
+                  <p>Your account will be automatically created on first login</p>
+                </div>
               </div>
             </CardContent>
           </Card>

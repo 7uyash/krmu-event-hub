@@ -5,16 +5,18 @@ import { EventCard } from '@/components/events/EventCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { mockEvents, mockRegistrations, mockUser } from '@/data/mockData';
+import { mockEvents, mockRegistrations } from '@/data/mockData';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 
 export default function StudentDashboard() {
+  const { user } = useAuth();
   const upcomingEvents = mockEvents.filter((e) => e.status === 'upcoming').slice(0, 3);
   const registeredEvents = mockRegistrations.length;
   const attendedEvents = mockRegistrations.filter((r) => r.attendanceStatus === 'present').length;
 
   return (
-    <DashboardLayout role="student" userName={mockUser.name}>
+    <DashboardLayout role="student">
       <div className="space-y-8">
         {/* Page Header */}
         <div>
