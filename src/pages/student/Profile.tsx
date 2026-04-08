@@ -63,7 +63,7 @@ export default function Profile() {
           <CardContent className="space-y-6">
             {/* Avatar Section */}
             <div className="flex items-center gap-6">
-              <div className="w-24 h-24 rounded-full bg-gradient-student flex items-center justify-center">
+              <div className="w-24 h-24 rounded-full bg-student/15 flex items-center justify-center">
                 <UserCircle className="h-12 w-12 text-primary-foreground" />
               </div>
               <div>

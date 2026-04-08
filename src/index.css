@@ -51,15 +51,6 @@
     --club: 340 82% 52%;
     --club-foreground: 0 0% 100%;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(222, 59%, 28%) 0%, hsl(222, 59%, 38%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(222, 59%, 22%) 0%, hsl(262, 60%, 35%) 100%);
-    --gradient-student: linear-gradient(135deg, hsl(175, 84%, 32%) 0%, hsl(175, 84%, 42%) 100%);
-    --gradient-coordinator: linear-gradient(135deg, hsl(160, 84%, 39%) 0%, hsl(160, 84%, 49%) 100%);
-    --gradient-convenor: linear-gradient(135deg, hsl(262, 83%, 58%) 0%, hsl(262, 83%, 68%) 100%);
-    --gradient-admin: linear-gradient(135deg, hsl(43, 96%, 56%) 0%, hsl(43, 96%, 66%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(210, 20%, 98%) 100%);
-
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 hsl(222 47% 11% / 0.05);
     --shadow-md: 0 4px 6px -1px hsl(222 47% 11% / 0.1), 0 2px 4px -2px hsl(222 47% 11% / 0.1);
@@ -130,48 +121,6 @@
 }
 
 @layer utilities {
-  .text-gradient-primary {
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .text-gradient-hero {
-    background: var(--gradient-hero);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .bg-gradient-primary {
-    background: var(--gradient-primary);
-  }
-
-  .bg-gradient-hero {
-    background: var(--gradient-hero);
-  }
-
-  .bg-gradient-student {
-    background: var(--gradient-student);
-  }
-
-  .bg-gradient-coordinator {
-    background: var(--gradient-coordinator);
-  }
-
-  .bg-gradient-convenor {
-    background: var(--gradient-convenor);
-  }
-
-  .bg-gradient-admin {
-    background: var(--gradient-admin);
-  }
-
-  .bg-gradient-card {
-    background: var(--gradient-card);
-  }
-
   .shadow-glow {
     box-shadow: var(--shadow-glow);
   }

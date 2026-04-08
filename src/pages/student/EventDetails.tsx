@@ -155,8 +155,8 @@ export default function EventDetails() {
         >
           <Card variant="elevated" className="overflow-hidden">
             {/* Banner */}
-            <div className="h-48 md:h-64 bg-gradient-hero relative">
-              <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 to-transparent" />
+            <div className="h-48 md:h-64 bg-accent/40 relative">
+              <div className="absolute inset-0 bg-foreground/10" />
               <div className="absolute bottom-6 left-6 right-6">
                 <Badge variant={categoryInfo.variant} className="mb-3">
                   {categoryInfo.label}

@@ -10,35 +10,35 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
-const roleConfig: Record<string, { label: string; icon: typeof GraduationCap; gradient: string; redirectPath: string }> = {
+const roleConfig: Record<string, { label: string; icon: typeof GraduationCap; headerBg: string; redirectPath: string }> = {
   student: {
     label: 'Student',
     icon: GraduationCap,
-    gradient: 'bg-gradient-student',
+    headerBg: 'bg-student',
     redirectPath: '/student',
   },
   coordinator: {
     label: 'Coordinator',
     icon: ClipboardCheck,
-    gradient: 'bg-gradient-coordinator',
+    headerBg: 'bg-coordinator',
     redirectPath: '/coordinator',
   },
   convenor: {
     label: 'Convenor',
     icon: Users,
-    gradient: 'bg-gradient-convenor',
+    headerBg: 'bg-convenor',
     redirectPath: '/convenor',
   },
   club: {
     label: 'Club Admin',
     icon: Building2,
-    gradient: 'bg-club',
+    headerBg: 'bg-club',
     redirectPath: '/club',
   },
   admin: {
     label: 'Super Admin',
     icon: Shield,
-    gradient: 'bg-gradient-admin',
+    headerBg: 'bg-admin',
     redirectPath: '/admin',
   },
 };
@@ -101,22 +101,22 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+      <div className="min-h-screen bg-background flex">
       {/* Left Panel - Branding */}
-      <div className={cn('hidden lg:flex lg:w-1/2 relative', config.gradient)}>
-        <div className="absolute inset-0 bg-foreground/10" />
-        <div className="relative z-10 flex flex-col justify-center items-center text-center p-12">
+      <div className={cn('hidden lg:flex lg:w-1/2 relative', config.headerBg)}>
+        <div className="absolute inset-0 bg-black/10" />
+        <div className="relative z-10 flex flex-col justify-center items-center text-center p-12 text-white">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <div className="w-24 h-24 rounded-2xl bg-primary-foreground/20 flex items-center justify-center mb-8">
-              <Icon className="h-12 w-12 text-primary-foreground" />
+            <div className="w-24 h-24 rounded-2xl bg-white/15 flex items-center justify-center mb-8">
+              <Icon className="h-12 w-12 text-white" />
             </div>
-            <h1 className="text-4xl font-bold text-primary-foreground mb-4">E-Attend</h1>
-            <p className="text-xl text-primary-foreground/90 mb-2">{config.label} Portal</p>
-            <p className="text-primary-foreground/70">K. R. Mangalam University</p>
+            <h1 className="text-4xl font-bold mb-4">E-Attend</h1>
+            <p className="text-xl text-white/90 mb-2">{config.label} Portal</p>
+            <p className="text-white/70">K. R. Mangalam University</p>
           </motion.div>
         </div>
       </div>
@@ -139,8 +139,8 @@ export default function AuthPage() {
           <Card variant="elevated">
             <CardHeader className="space-y-1 pb-4">
               <div className="lg:hidden flex items-center gap-3 mb-4">
-                <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center', config.gradient)}>
-                  <Icon className="h-6 w-6 text-primary-foreground" />
+                <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-white', config.headerBg)}>
+                  <Icon className="h-6 w-6 text-white" />
                 </div>
                 <div>
                   <CardTitle className="text-xl">{config.label}</CardTitle>

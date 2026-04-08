@@ -20,17 +20,17 @@ const buttonVariants = cva(
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
         student:
-          "bg-gradient-student text-student-foreground shadow-md hover:opacity-90 hover:shadow-lg active:scale-[0.98]",
+          "bg-student text-student-foreground shadow-md hover:opacity-90 hover:shadow-lg active:scale-[0.98]",
         coordinator:
-          "bg-gradient-coordinator text-coordinator-foreground shadow-md hover:opacity-90 hover:shadow-lg active:scale-[0.98]",
+          "bg-coordinator text-coordinator-foreground shadow-md hover:opacity-90 hover:shadow-lg active:scale-[0.98]",
         convenor:
-          "bg-gradient-convenor text-convenor-foreground shadow-md hover:opacity-90 hover:shadow-lg active:scale-[0.98]",
+          "bg-convenor text-convenor-foreground shadow-md hover:opacity-90 hover:shadow-lg active:scale-[0.98]",
         admin:
-          "bg-gradient-admin text-admin-foreground shadow-md hover:opacity-90 hover:shadow-lg active:scale-[0.98]",
+          "bg-admin text-admin-foreground shadow-md hover:opacity-90 hover:shadow-lg active:scale-[0.98]",
         club:
           "bg-club text-club-foreground shadow-md hover:bg-club/90 hover:shadow-lg active:scale-[0.98]",
         hero:
-          "bg-gradient-hero text-primary-foreground shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]",
+          "bg-primary text-primary-foreground shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]",
         "hero-outline":
           "border-2 border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:border-primary-foreground/50",
       },

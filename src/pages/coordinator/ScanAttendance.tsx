@@ -72,7 +72,7 @@ export default function ScanAttendance() {
 
         {/* Scanner Card */}
         <Card variant="coordinator" className="overflow-hidden">
-          <CardHeader className="bg-gradient-coordinator text-coordinator-foreground">
+          <CardHeader className="bg-coordinator text-coordinator-foreground">
             <CardTitle className="flex items-center gap-2">
               <QrCode className="h-5 w-5" />
               QR / Barcode Scanner

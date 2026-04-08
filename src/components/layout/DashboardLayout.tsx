@@ -31,7 +31,8 @@ interface DashboardLayoutProps {
 
 const roleConfig = {
   student: {
-    gradient: 'bg-gradient-student',
+    headerBg: 'bg-student',
+    headerText: 'text-student-foreground',
     accent: 'text-student',
     links: [
       { to: '/student', icon: Home, label: 'Dashboard' },
@@ -42,16 +43,19 @@ const roleConfig = {
     ],
   },
   coordinator: {
-    gradient: 'bg-gradient-coordinator',
+    headerBg: 'bg-coordinator',
+    headerText: 'text-coordinator-foreground',
     accent: 'text-coordinator',
     links: [
       { to: '/coordinator', icon: Home, label: 'Dashboard' },
+      { to: '/coordinator/events', icon: Calendar, label: 'My Events' },
       { to: '/coordinator/scan', icon: QrCode, label: 'Mark Attendance' },
       { to: '/coordinator/manual', icon: ClipboardList, label: 'Manual Entry' },
     ],
   },
   convenor: {
-    gradient: 'bg-gradient-convenor',
+    headerBg: 'bg-convenor',
+    headerText: 'text-convenor-foreground',
     accent: 'text-convenor',
     links: [
       { to: '/convenor', icon: Home, label: 'Dashboard' },
@@ -61,7 +65,8 @@ const roleConfig = {
     ],
   },
   club: {
-    gradient: 'bg-club',
+    headerBg: 'bg-club',
+    headerText: 'text-club-foreground',
     accent: 'text-club',
     links: [
       { to: '/club', icon: Home, label: 'Dashboard' },
@@ -71,7 +76,8 @@ const roleConfig = {
     ],
   },
   admin: {
-    gradient: 'bg-gradient-admin',
+    headerBg: 'bg-admin',
+    headerText: 'text-admin-foreground',
     accent: 'text-primary',
     links: [
       { to: '/admin', icon: Home, label: 'Overview' },
@@ -142,15 +148,15 @@ export function DashboardLayout({ children, role, userName }: DashboardLayoutPro
         )}
       >
         {/* Sidebar Header */}
-        <div className={cn('h-20 flex items-center justify-between px-6', config.gradient)}>
-          <div className="text-primary-foreground">
+        <div className={cn('h-20 flex items-center justify-between px-6', config.headerBg, config.headerText)}>
+          <div>
             <h1 className="font-bold text-xl">E-Attend</h1>
             <p className="text-sm opacity-90">{roleLabels[role]}</p>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden text-primary-foreground hover:bg-primary-foreground/10"
+            className={cn('lg:hidden hover:bg-black/10', config.headerText)}
             onClick={() => setSidebarOpen(false)}
           >
             <X className="h-5 w-5" />
@@ -160,8 +166,8 @@ export function DashboardLayout({ children, role, userName }: DashboardLayoutPro
         {/* User Info */}
         <div className="p-4 border-b">
           <div className="flex items-center gap-3">
-            <div className={cn('w-10 h-10 rounded-full flex items-center justify-center', config.gradient)}>
-              <UserCircle className="h-6 w-6 text-primary-foreground" />
+            <div className={cn('w-10 h-10 rounded-full flex items-center justify-center', config.headerBg)}>
+              <UserCircle className={cn('h-6 w-6', config.headerText)} />
             </div>
             <div>
               <p className="font-semibold text-sm">{displayName}</p>
@@ -184,7 +190,7 @@ export function DashboardLayout({ children, role, userName }: DashboardLayoutPro
                 className={cn(
                   'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200',
                   isActive
-                    ? `${config.gradient} text-primary-foreground shadow-md`
+                    ? `${config.headerBg} ${config.headerText} shadow-md`
                     : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                 )}
               >

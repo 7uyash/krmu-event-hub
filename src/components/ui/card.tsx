@@ -16,7 +16,7 @@ const cardVariants = cva(
         coordinator: "border-coordinator/20 shadow-sm hover:shadow-md hover:border-coordinator/40",
         convenor: "border-convenor/20 shadow-sm hover:shadow-md hover:border-convenor/40",
         admin: "border-admin/20 shadow-sm hover:shadow-md hover:border-admin/40",
-        gradient: "bg-gradient-card border-0 shadow-md",
+        gradient: "bg-card border-0 shadow-md",
       },
     },
     defaultVariants: {

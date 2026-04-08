@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, CheckCircle, ClipboardList, TrendingUp } from 'lucide-react';
+import { Calendar, CheckCircle, ClipboardList, TrendingUp, Bell, Settings, HelpCircle } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatCard } from '@/components/stats/StatCard';
 import { EventCard } from '@/components/events/EventCard';
@@ -210,6 +210,24 @@ export default function StudentDashboard() {
                   <Link to="/student/attendance">
                     <CheckCircle className="h-4 w-4 mr-2" />
                     View Attendance
+                  </Link>
+                </Button>
+                <Button variant="outline" className="w-full justify-start" asChild>
+                  <Link to="/student/notifications">
+                    <Bell className="h-4 w-4 mr-2" />
+                    Notifications
+                  </Link>
+                </Button>
+                <Button variant="outline" className="w-full justify-start" asChild>
+                  <Link to="/student/settings">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </Link>
+                </Button>
+                <Button variant="outline" className="w-full justify-start" asChild>
+                  <Link to="/student/support">
+                    <HelpCircle className="h-4 w-4 mr-2" />
+                    Support
                   </Link>
                 </Button>
               </CardContent>

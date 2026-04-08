@@ -110,7 +110,7 @@ export default function CoordinatorDashboard() {
 
         {/* Current Event */}
         <Card variant="coordinator" className="overflow-hidden">
-          <div className="h-24 bg-gradient-coordinator relative">
+          <div className="h-24 bg-coordinator relative">
             <div className="absolute inset-0 flex items-center px-6">
               <div className="text-coordinator-foreground flex-1">
                 <p className="text-sm opacity-90">Currently Managing</p>
@@ -200,7 +200,7 @@ export default function CoordinatorDashboard() {
               <Link to={`/coordinator/scan?eventId=${eventId}`}>
                 <CardContent className="p-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-xl bg-gradient-coordinator flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-xl bg-coordinator flex items-center justify-center">
                       <QrCode className="h-8 w-8 text-coordinator-foreground" />
                     </div>
                     <div>

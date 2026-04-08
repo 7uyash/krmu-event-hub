@@ -161,7 +161,7 @@ export default function Landing() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] md:min-h-[95vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-background via-background to-muted/30">
+      <section className="relative min-h-[90vh] md:min-h-[95vh] flex items-center justify-center overflow-hidden bg-background">
         <div className="absolute inset-0 overflow-hidden">
           {/* Subtle geometric pattern */}
           <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">

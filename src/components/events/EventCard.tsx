@@ -39,11 +39,11 @@ export function EventCard({ event, showRegisterButton = true, isRegistered = fal
         <div
           className={cn(
             'h-32 relative',
-            event.poster ? '' : 'bg-gradient-hero'
+            event.poster ? '' : 'bg-accent/40'
           )}
           style={event.poster ? { backgroundImage: `url(${event.poster})`, backgroundSize: 'cover' } : undefined}
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 to-transparent" />
+          <div className="absolute inset-0 bg-foreground/10" />
           <div className="absolute bottom-3 left-4 right-4">
             <Badge variant={categoryInfo.variant}>{categoryInfo.label}</Badge>
             {event.isClubOnly && (
