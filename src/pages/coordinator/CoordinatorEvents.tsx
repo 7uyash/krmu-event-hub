@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Calendar, ChevronRight, Filter, Search } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -6,53 +6,37 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-type CoordinatorEvent = {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  venue: string;
-  status: "upcoming" | "ongoing" | "completed" | "cancelled";
-  registeredCount: number;
-};
-
-const demoEvents: CoordinatorEvent[] = [
-  {
-    id: "evt-101",
-    title: "Industry Talk: Product Thinking",
-    date: "2026-04-18",
-    time: "11:00",
-    venue: "Auditorium A",
-    status: "upcoming",
-    registeredCount: 184,
-  },
-  {
-    id: "evt-102",
-    title: "Sports Meet: Track Trials",
-    date: "2026-04-12",
-    time: "08:30",
-    venue: "Sports Complex",
-    status: "upcoming",
-    registeredCount: 96,
-  },
-  {
-    id: "evt-099",
-    title: "Workshop: Git & Open Source",
-    date: "2026-03-22",
-    time: "14:00",
-    venue: "Lab 2",
-    status: "completed",
-    registeredCount: 62,
-  },
-];
+import { api } from "@/lib/api";
+import { Event } from "@/types";
+import { toast } from "sonner";
 
 export default function CoordinatorEvents() {
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<"all" | CoordinatorEvent["status"]>("all");
+  const [status, setStatus] = useState<"all" | Event["status"]>("all");
+  const [events, setEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setIsLoading(true);
+        const res = await api.eventsAdmin.getCoordinatorEvents();
+        const mapped = (res.events || []).map((e: any) => ({
+          ...e,
+          id: e._id?.toString() || e.id,
+        }));
+        setEvents(mapped);
+      } catch (err: any) {
+        toast.error(err.message || "Failed to load assigned events");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const filtered = useMemo(() => {
-    return demoEvents.filter((e) => {
+    return events.filter((e) => {
       const matchesQuery =
         query.trim() === "" ||
         e.title.toLowerCase().includes(query.toLowerCase()) ||
@@ -60,7 +44,7 @@ export default function CoordinatorEvents() {
       const matchesStatus = status === "all" || e.status === status;
       return matchesQuery && matchesStatus;
     });
-  }, [query, status]);
+  }, [query, status, events]);
 
   return (
     <DashboardLayout role="coordinator">
@@ -69,7 +53,7 @@ export default function CoordinatorEvents() {
           <div>
             <h1 className="text-2xl font-bold">My Events</h1>
             <p className="text-muted-foreground">
-              Choose an event to mark attendance. (UI-only for now)
+              Choose an event to mark attendance.
             </p>
           </div>
           <Button variant="outline" asChild>
@@ -134,7 +118,7 @@ export default function CoordinatorEvents() {
                       <div className="flex items-center gap-2 mb-2">
                         <Badge variant={badgeVariant as any}>{event.status}</Badge>
                         <span className="text-xs text-muted-foreground">
-                          {event.registeredCount} registered
+                          {event.registeredCount || 0} registered
                         </span>
                       </div>
                       <h3 className="font-semibold text-lg leading-tight truncate">{event.title}</h3>
@@ -171,7 +155,7 @@ export default function CoordinatorEvents() {
           })}
         </div>
 
-        {filtered.length === 0 && (
+        {!isLoading && filtered.length === 0 && (
           <Card>
             <CardContent className="p-10 text-center">
               <p className="font-medium">No events found</p>

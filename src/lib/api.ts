@@ -54,12 +54,13 @@ export const api = {
     getMe: () => api.request('/auth/me'),
 
     // Microsoft OAuth endpoints
-    getMicrosoftAuthUrl: () => api.request('/auth/microsoft/url'),
+    getMicrosoftAuthUrl: (role?: string) =>
+      api.request(`/auth/microsoft/url${role ? `?role=${encodeURIComponent(role)}` : ''}`),
 
-    microsoftCallback: (code: string) =>
+    microsoftCallback: (code: string, requestedRole?: string) =>
       api.request('/auth/microsoft/callback', {
         method: 'POST',
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, requestedRole }),
       }),
   },
 
@@ -93,11 +94,24 @@ export const api = {
 
   // Profile endpoints
   profile: {
+    get: () => api.request('/profile'),
     update: (data: { name?: string; department?: string }) =>
       api.request('/profile', {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
+    updatePreferences: (data: {
+      emailDigest?: boolean;
+      eventReminders?: boolean;
+      attendanceUpdates?: boolean;
+      shareProfile?: boolean;
+      sessionLock?: boolean;
+    }) =>
+      api.request('/profile/preferences', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    getNotifications: () => api.request('/profile/notifications'),
   },
 
   // Event admin endpoints (for convenors/coordinators)
@@ -109,6 +123,8 @@ export const api = {
       }),
 
     getMyEvents: () => api.request('/events/convenor/my-events'),
+
+    getCoordinatorEvents: () => api.request('/events/coordinator/my-events'),
 
     getEventRegistrations: (eventId: string) =>
       api.request(`/events/${eventId}/registrations`),
@@ -130,6 +146,66 @@ export const api = {
 
     getQRCode: (eventId: string) =>
       api.request(`/events/${eventId}/qr-code`),
+
+    updateEventStatus: (eventId: string, data: { status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled'; isOpen?: boolean }) =>
+      api.request(`/events/${eventId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+  },
+
+  admin: {
+    getEvents: (params?: { q?: string; status?: string; category?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.q) q.set('q', params.q);
+      if (params?.status) q.set('status', params.status);
+      if (params?.category) q.set('category', params.category);
+      const qs = q.toString();
+      return api.request(`/admin/events${qs ? `?${qs}` : ''}`);
+    },
+    getUsers: (params?: { q?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.q) q.set('q', params.q);
+      const qs = q.toString();
+      return api.request(`/admin/users${qs ? `?${qs}` : ''}`);
+    },
+    getDepartments: () => api.request('/admin/departments'),
+    getAuditLogs: () => api.request('/admin/audit-logs'),
+    getSystemSettings: () => api.request('/admin/system-settings'),
+    updateSystemSettings: (data: {
+      maintenanceMode: boolean;
+      lockRegistrations: boolean;
+      require2FA: boolean;
+      defaultAttendancePolicy: 'strict' | 'normal';
+    }) =>
+      api.request('/admin/system-settings', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+  },
+
+  support: {
+    createTicket: (data: { category: 'attendance' | 'registration' | 'account' | 'other'; subject: string; message: string }) =>
+      api.request('/support/tickets', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    getMyTickets: () => api.request('/support/tickets/me'),
+  },
+
+  club: {
+    getProfile: () => api.request('/club/profile'),
+    getMembers: (q?: string) => api.request(`/club/members${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+    importMembers: (rollNumbers: string[]) =>
+      api.request('/club/members/import', {
+        method: 'POST',
+        body: JSON.stringify({ rollNumbers }),
+      }),
+    updateMember: (memberId: string, data: { status?: 'active' | 'pending'; action?: 'remove' }) =>
+      api.request(`/club/members/${memberId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
   },
 };
 

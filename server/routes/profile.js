@@ -2,6 +2,7 @@ import express from 'express';
 import { body, validationResult } from 'express-validator';
 import jwt from 'jsonwebtoken';
 import Student from '../models/Student.js';
+import Registration from '../models/Registration.js';
 
 const router = express.Router();
 
@@ -65,6 +66,71 @@ router.put('/', authenticate, [
     });
   } catch (error) {
     console.error('Profile update error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get current profile + preferences
+router.get('/', authenticate, async (req, res) => {
+  try {
+    const student = await Student.findById(req.userId).select('-password -__v');
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+    res.json({ user: student });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Update user preferences
+router.put('/preferences', authenticate, async (req, res) => {
+  try {
+    const student = await Student.findById(req.userId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    student.preferences = {
+      ...student.preferences?.toObject?.(),
+      ...req.body,
+    };
+    await student.save();
+
+    res.json({
+      message: 'Preferences updated successfully',
+      preferences: student.preferences,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get notification feed from registrations/attendance updates
+router.get('/notifications', authenticate, async (req, res) => {
+  try {
+    const regs = await Registration.find({ userId: req.userId })
+      .populate('eventId', 'title')
+      .sort({ registeredAt: -1, markedAt: -1 })
+      .limit(50)
+      .select('-__v');
+
+    const notifications = regs.map((r) => {
+      const eventTitle = r.eventId?.title || 'an event';
+      const hasAttendance = r.attendanceStatus === 'present' || r.attendanceStatus === 'absent';
+      return {
+        id: r._id.toString(),
+        title: hasAttendance ? 'Attendance updated' : 'Registration confirmed',
+        message: hasAttendance
+          ? `Your attendance for ${eventTitle} is marked as ${r.attendanceStatus}.`
+          : `You are registered for ${eventTitle}.`,
+        createdAt: r.markedAt || r.registeredAt,
+        read: false,
+      };
+    });
+
+    res.json({ notifications });
+  } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });

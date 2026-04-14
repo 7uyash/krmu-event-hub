@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 type Category = "attendance" | "registration" | "account" | "other";
 
@@ -22,7 +23,7 @@ export default function StudentSupport() {
             <HelpCircle className="h-6 w-6" />
             Support Center
           </h1>
-          <p className="text-muted-foreground">Submit a ticket or browse FAQs. (UI-only)</p>
+          <p className="text-muted-foreground">Submit a ticket or browse FAQs.</p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-4">
@@ -84,9 +85,14 @@ export default function StudentSupport() {
                     toast.error("Please fill subject and message");
                     return;
                   }
-                  toast.success("Ticket submitted (UI-only)");
-                  setSubject("");
-                  setMessage("");
+                  api.support
+                    .createTicket({ category, subject, message })
+                    .then(() => {
+                      toast.success("Ticket submitted");
+                      setSubject("");
+                      setMessage("");
+                    })
+                    .catch((err: any) => toast.error(err.message || "Failed to submit ticket"));
                 }}
               >
                 Submit ticket

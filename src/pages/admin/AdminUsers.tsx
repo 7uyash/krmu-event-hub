@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Search, Shield, UserCog, Users } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 type UserRole = "student" | "coordinator" | "convenor" | "club" | "admin";
 
@@ -16,59 +18,40 @@ type AdminUserRow = {
   email: string;
   department: string;
   role: UserRole;
-  status: "active" | "disabled";
+  status?: "active" | "disabled";
 };
-
-const demoUsers: AdminUserRow[] = [
-  {
-    id: "u-01",
-    name: "Aarav Singh",
-    email: "2023001@krmu.edu.in",
-    department: "CSE",
-    role: "student",
-    status: "active",
-  },
-  {
-    id: "u-02",
-    name: "Priya Sharma",
-    email: "priya.coordinator@krmu.edu.in",
-    department: "Sports",
-    role: "coordinator",
-    status: "active",
-  },
-  {
-    id: "u-03",
-    name: "Dr. Neha Verma",
-    email: "neha.convenor@krmu.edu.in",
-    department: "CSE",
-    role: "convenor",
-    status: "active",
-  },
-  {
-    id: "u-04",
-    name: "Coding Club Admin",
-    email: "coding.club@krmu.edu.in",
-    department: "Clubs",
-    role: "club",
-    status: "disabled",
-  },
-];
 
 export default function AdminUsers() {
   const [q, setQ] = useState("");
+  const [users, setUsers] = useState<AdminUserRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setIsLoading(true);
+        const res = await api.admin.getUsers({ q });
+        const mapped = (res.users || []).map((u: any) => ({
+          id: u._id?.toString() || u.id,
+          name: u.name,
+          email: u.email,
+          department: u.department || "—",
+          role: u.role,
+          status: u.status,
+        }));
+        setUsers(mapped);
+      } catch (err: any) {
+        toast.error(err.message || "Failed to load users");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, [q]);
 
   const rows = useMemo(() => {
-    return demoUsers.filter((u) => {
-      const s = q.trim().toLowerCase();
-      if (!s) return true;
-      return (
-        u.name.toLowerCase().includes(s) ||
-        u.email.toLowerCase().includes(s) ||
-        u.department.toLowerCase().includes(s) ||
-        u.role.toLowerCase().includes(s)
-      );
-    });
-  }, [q]);
+    return users;
+  }, [users]);
 
   return (
     <DashboardLayout role="admin" userName="Super Admin">
@@ -76,7 +59,7 @@ export default function AdminUsers() {
         <div className="flex items-start justify-between gap-4 flex-col sm:flex-row">
           <div>
             <h1 className="text-2xl font-bold">Users</h1>
-            <p className="text-muted-foreground">Manage user roles and access. (UI-only)</p>
+            <p className="text-muted-foreground">Manage user roles and access.</p>
           </div>
           <Button variant="outline" asChild>
             <Link to="/admin">Back to Overview</Link>
@@ -91,7 +74,7 @@ export default function AdminUsers() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total users</p>
-                <p className="text-2xl font-bold">{demoUsers.length}</p>
+                <p className="text-2xl font-bold">{isLoading ? "—" : users.length}</p>
               </div>
             </CardContent>
           </Card>
@@ -103,7 +86,7 @@ export default function AdminUsers() {
               <div>
                 <p className="text-sm text-muted-foreground">Privileged roles</p>
                 <p className="text-2xl font-bold">
-                  {demoUsers.filter((u) => u.role !== "student").length}
+                  {isLoading ? "—" : users.filter((u) => u.role !== "student").length}
                 </p>
               </div>
             </CardContent>
@@ -115,7 +98,7 @@ export default function AdminUsers() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Disabled</p>
-                <p className="text-2xl font-bold">{demoUsers.filter((u) => u.status === "disabled").length}</p>
+                <p className="text-2xl font-bold">{isLoading ? "—" : users.filter((u) => u.status === "disabled").length}</p>
               </div>
             </CardContent>
           </Card>
@@ -137,7 +120,7 @@ export default function AdminUsers() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">User list</CardTitle>
-            <CardDescription>{rows.length} user(s) shown.</CardDescription>
+            <CardDescription>{isLoading ? "Loading…" : `${rows.length} user(s) shown.`}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -163,9 +146,11 @@ export default function AdminUsers() {
                         <Badge variant={u.role as any}>{u.role}</Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={u.status === "active" ? "success" : "secondary"}>
-                          {u.status}
-                        </Badge>
+                        {u.status ? (
+                          <Badge variant={u.status === "active" ? "success" : "secondary"}>{u.status}</Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -179,7 +164,7 @@ export default function AdminUsers() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {rows.length === 0 && (
+                  {!isLoading && rows.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
                         No users match your search.

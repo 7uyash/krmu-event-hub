@@ -19,11 +19,10 @@ export default function CoordinatorDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // For now, use first event. In production, coordinators should see their assigned events
     const fetchEventData = async () => {
       try {
         setIsLoading(true);
-        const eventsResponse = await api.events.getAll({ status: 'upcoming' });
+        const eventsResponse = await api.eventsAdmin.getCoordinatorEvents();
         if (eventsResponse.events && eventsResponse.events.length > 0) {
           const firstEvent = eventsResponse.events[0];
           setEvent(firstEvent);
@@ -225,6 +224,42 @@ export default function CoordinatorDashboard() {
                       <h3 className="font-semibold text-lg">Manual Entry</h3>
                       <p className="text-sm text-muted-foreground">
                         Enter roll number manually or upload photo
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Link>
+            </Card>
+
+            <Card variant="interactive" className="overflow-hidden">
+              <Link to={`/coordinator/events/${eventId}/registrations`}>
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center">
+                      <Users className="h-8 w-8 text-foreground" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg">Registrations Table</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Review all registered students and update attendance
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Link>
+            </Card>
+
+            <Card variant="interactive" className="overflow-hidden">
+              <Link to="/coordinator/reports">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center">
+                      <Download className="h-8 w-8 text-foreground" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg">Reports</h3>
+                      <p className="text-sm text-muted-foreground">
+                        See export history and report actions
                       </p>
                     </div>
                   </div>

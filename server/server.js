@@ -7,6 +7,9 @@ import microsoftAuthRoutes from './routes/microsoft-auth.js';
 import eventRoutes from './routes/events.js';
 import eventAdminRoutes from './routes/events-admin.js';
 import profileRoutes from './routes/profile.js';
+import adminRoutes from './routes/admin.js';
+import supportRoutes from './routes/support.js';
+import clubRoutes from './routes/club.js';
 
 dotenv.config();
 
@@ -30,6 +33,9 @@ app.use('/api/auth', microsoftAuthRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/events', eventAdminRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/support', supportRoutes);
+app.use('/api/club', clubRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 export default function ClubMemberImport() {
   const [rollsText, setRollsText] = useState("");
@@ -20,7 +21,7 @@ export default function ClubMemberImport() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Import Members</h1>
-          <p className="text-muted-foreground">Upload or paste roll numbers to update club membership. (UI-only)</p>
+          <p className="text-muted-foreground">Upload or paste roll numbers to update club membership.</p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-4">
@@ -30,7 +31,7 @@ export default function ClubMemberImport() {
                 <Upload className="h-4 w-4" />
                 CSV upload
               </CardTitle>
-              <CardDescription>In the full app, the backend will parse the file.</CardDescription>
+              <CardDescription>Paste/import data and sync with backend membership records.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="rounded-lg border border-dashed p-6 text-center bg-muted/20">
@@ -74,11 +75,16 @@ export default function ClubMemberImport() {
                 <Button
                   disabled={parsed.length === 0}
                   onClick={() => {
-                    toast.success("Members imported (UI-only)");
-                    setRollsText("");
+                    api.club
+                      .importMembers(parsed)
+                      .then((res) => {
+                        toast.success(`Imported ${res.imported || 0} members`);
+                        setRollsText("");
+                      })
+                      .catch((err: any) => toast.error(err.message || "Import failed"));
                   }}
                 >
-                  Import (UI-only)
+                  Import
                 </Button>
               </div>
             </CardContent>

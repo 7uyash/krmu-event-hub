@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Calendar, CheckCircle, AlertTriangle, Lock, LockKeyhole } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
+import { EventStatus } from "@/types";
 
 type CloseState = "ready" | "closing" | "closed";
 
@@ -13,17 +15,49 @@ export default function ConvenorCloseEvent() {
   const { eventId = "" } = useParams<{ eventId: string }>();
   const [confirmChecked, setConfirmChecked] = useState(false);
   const [state, setState] = useState<CloseState>("ready");
+  const [targetStatus, setTargetStatus] = useState<EventStatus>("completed");
+  const [event, setEvent] = useState<any>(null);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!eventId) return;
+      try {
+        const [eventRes, regRes] = await Promise.all([
+          api.events.getById(eventId),
+          api.eventsAdmin.getEventRegistrations(eventId),
+        ]);
+        setEvent(eventRes.event);
+        setTargetStatus(eventRes.event?.status === "cancelled" ? "cancelled" : "completed");
+        const pending = (regRes.registrations || []).filter((r: any) => r.attendanceStatus === "pending").length;
+        setPendingCount(pending);
+      } catch (err: any) {
+        toast.error(err.message || "Failed to load event");
+      }
+    };
+    load();
+  }, [eventId]);
 
   const preview = useMemo(() => {
+    if (!event) {
+      return {
+        title: "—",
+        date: "",
+        time: "",
+        venue: "—",
+        currentStatus: "upcoming" as const,
+        pendingCount,
+      };
+    }
     return {
-      title: "Guest Lecture: AI Ethics",
-      date: "2026-03-15",
-      time: "16:00",
-      venue: "Auditorium B",
-      currentStatus: "ongoing" as const,
-      pendingCount: 12,
+      title: event.title,
+      date: event.date,
+      time: event.time,
+      venue: event.venue,
+      currentStatus: event.status,
+      pendingCount,
     };
-  }, []);
+  }, [event, pendingCount]);
 
   return (
     <DashboardLayout role="convenor">
@@ -31,7 +65,7 @@ export default function ConvenorCloseEvent() {
         <div>
           <h1 className="text-2xl font-bold">Finalize & Close Event</h1>
           <p className="text-muted-foreground">
-            Close the event after attendance is collected. (UI-only)
+            Close the event after attendance is collected.
           </p>
         </div>
 
@@ -90,7 +124,7 @@ export default function ConvenorCloseEvent() {
                   <p className="font-medium">Completed</p>
                   <p className="text-sm text-muted-foreground">Mark as completed after attendance is collected.</p>
                 </div>
-                <Button variant="outline" disabled>
+                <Button variant={targetStatus === "completed" ? "default" : "outline"} onClick={() => setTargetStatus("completed")}>
                   Select
                 </Button>
               </div>
@@ -99,7 +133,7 @@ export default function ConvenorCloseEvent() {
                   <p className="font-medium">Cancelled</p>
                   <p className="text-sm text-muted-foreground">Cancel if the event did not happen.</p>
                 </div>
-                <Button variant="outline" disabled>
+                <Button variant={targetStatus === "cancelled" ? "default" : "outline"} onClick={() => setTargetStatus("cancelled")}>
                   Select
                 </Button>
               </div>
@@ -125,7 +159,7 @@ export default function ConvenorCloseEvent() {
                 <div>
                   <p className="font-medium">I confirm attendance collection is complete.</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    This action cannot be undone (UI-only).
+                    This action cannot be undone.
                   </p>
                 </div>
               </label>
@@ -133,13 +167,19 @@ export default function ConvenorCloseEvent() {
               <Button
                 className="w-full"
                 disabled={!confirmChecked || state !== "ready"}
-                onClick={() => {
+                onClick={async () => {
                   setState("closing");
-                  toast.loading("Closing event…", { duration: 1200 });
-                  setTimeout(() => {
+                  try {
+                    await api.eventsAdmin.updateEventStatus(eventId, {
+                      status: targetStatus,
+                      isOpen: false,
+                    });
                     setState("closed");
-                    toast.success("Event closed (UI-only)");
-                  }, 1000);
+                    toast.success(`Event marked as ${targetStatus}`);
+                  } catch (err: any) {
+                    setState("ready");
+                    toast.error(err.message || "Failed to close event");
+                  }
                 }}
               >
                 {state === "ready" && "Close event"}

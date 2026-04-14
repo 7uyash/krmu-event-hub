@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Download, Upload, Search, Users } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -7,28 +7,31 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 type Member = {
+  id: string;
   rollNumber: string;
   name: string;
   department: string;
   status: "active" | "pending";
 };
 
-const demoMembers: Member[] = [
-  { rollNumber: "2023001", name: "Aarav Singh", department: "CSE", status: "active" },
-  { rollNumber: "2023124", name: "Rohit Mehra", department: "CSE", status: "active" },
-  { rollNumber: "2023251", name: "Ananya Verma", department: "CSE", status: "pending" },
-];
-
 export default function ClubMembers() {
   const [q, setQ] = useState("");
+  const [members, setMembers] = useState<Member[]>([]);
+
+  useEffect(() => {
+    api.club
+      .getMembers(q)
+      .then((res) => setMembers(res.members || []))
+      .catch((err: any) => toast.error(err.message || "Failed to load members"));
+  }, [q]);
 
   const rows = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    if (!s) return demoMembers;
-    return demoMembers.filter((m) => m.rollNumber.includes(s) || m.name.toLowerCase().includes(s) || m.department.toLowerCase().includes(s));
-  }, [q]);
+    return members;
+  }, [members]);
 
   return (
     <DashboardLayout role="club">
@@ -36,7 +39,7 @@ export default function ClubMembers() {
         <div className="flex items-start justify-between gap-4 flex-col sm:flex-row">
           <div>
             <h1 className="text-2xl font-bold">Members</h1>
-            <p className="text-muted-foreground">Manage your club membership list. (UI-only)</p>
+            <p className="text-muted-foreground">Manage your club membership list.</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" asChild>
@@ -61,20 +64,20 @@ export default function ClubMembers() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold">{demoMembers.length}</p>
+                <p className="text-2xl font-bold">{members.length}</p>
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-5">
               <p className="text-sm text-muted-foreground">Active</p>
-              <p className="text-2xl font-bold mt-1">{demoMembers.filter((m) => m.status === "active").length}</p>
+              <p className="text-2xl font-bold mt-1">{members.filter((m) => m.status === "active").length}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-5">
               <p className="text-sm text-muted-foreground">Pending</p>
-              <p className="text-2xl font-bold mt-1">{demoMembers.filter((m) => m.status === "pending").length}</p>
+              <p className="text-2xl font-bold mt-1">{members.filter((m) => m.status === "pending").length}</p>
             </CardContent>
           </Card>
         </div>
@@ -110,7 +113,7 @@ export default function ClubMembers() {
                 </TableHeader>
                 <TableBody>
                   {rows.map((m) => (
-                    <TableRow key={m.rollNumber}>
+                    <TableRow key={m.id}>
                       <TableCell>
                         <div className="font-medium">{m.name}</div>
                         <div className="text-xs text-muted-foreground">{m.rollNumber}</div>
@@ -121,10 +124,19 @@ export default function ClubMembers() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button size="sm" variant="outline" disabled>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => api.club.updateMember(m.id, { status: "active" }).then(() => setMembers((prev) => prev.map((x) => (x.id === m.id ? { ...x, status: "active" } : x))))}
+                            disabled={m.status === "active"}
+                          >
                             Approve
                           </Button>
-                          <Button size="sm" variant="outline" disabled>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => api.club.updateMember(m.id, { action: "remove" }).then(() => setMembers((prev) => prev.filter((x) => x.id !== m.id)))}
+                          >
                             Remove
                           </Button>
                         </div>

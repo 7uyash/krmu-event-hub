@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SlidersHorizontal, ShieldCheck, Bell, Lock } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 export default function StudentSettings() {
   const [emailDigest, setEmailDigest] = useState(true);
@@ -13,12 +14,26 @@ export default function StudentSettings() {
   const [shareProfile, setShareProfile] = useState(false);
   const [sessionLock, setSessionLock] = useState(true);
 
+  useEffect(() => {
+    api.profile
+      .get()
+      .then((res) => {
+        const p = res.user?.preferences || {};
+        setEmailDigest(p.emailDigest ?? true);
+        setEventReminders(p.eventReminders ?? true);
+        setAttendanceUpdates(p.attendanceUpdates ?? true);
+        setShareProfile(p.shareProfile ?? false);
+        setSessionLock(p.sessionLock ?? true);
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <DashboardLayout role="student">
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">Customize your preferences. (UI-only)</p>
+          <p className="text-muted-foreground">Customize your preferences.</p>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
@@ -102,7 +117,16 @@ export default function StudentSettings() {
           </Button>
           <Button
             onClick={() => {
-              toast.success("Settings saved (UI-only)");
+              api.profile
+                .updatePreferences({
+                  emailDigest,
+                  eventReminders,
+                  attendanceUpdates,
+                  shareProfile,
+                  sessionLock,
+                })
+                .then(() => toast.success("Settings saved"))
+                .catch((err: any) => toast.error(err.message || "Failed to save settings"));
             }}
           >
             Save changes

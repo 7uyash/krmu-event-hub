@@ -13,7 +13,6 @@ const studentSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
     trim: true,
-    match: [/^[\w-\.]+@krmu\.edu\.in$/, 'Please enter a valid KRMU email'],
   },
   rollNumber: {
     type: String,
@@ -42,6 +41,13 @@ const studentSchema = new mongoose.Schema({
     type: String,
     unique: true,
     sparse: true,
+  },
+  preferences: {
+    emailDigest: { type: Boolean, default: true },
+    eventReminders: { type: Boolean, default: true },
+    attendanceUpdates: { type: Boolean, default: true },
+    shareProfile: { type: Boolean, default: false },
+    sessionLock: { type: Boolean, default: true },
   },
   createdAt: {
     type: Date,

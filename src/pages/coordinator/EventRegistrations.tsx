@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Search, CheckCircle, XCircle, Clock, Users } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 type AttendanceStatus = "present" | "absent" | "pending";
 
@@ -19,17 +20,34 @@ type RegistrationRow = {
   status: AttendanceStatus;
 };
 
-const demoRegistrations: RegistrationRow[] = [
-  { id: "r-01", rollNumber: "2023001", name: "Aarav Singh", department: "CSE", status: "pending" },
-  { id: "r-02", rollNumber: "2023044", name: "Meera Iyer", department: "CSE", status: "present" },
-  { id: "r-03", rollNumber: "2023124", name: "Rohit Mehra", department: "Sports", status: "absent" },
-  { id: "r-04", rollNumber: "2023177", name: "Ananya Verma", department: "MBA", status: "pending" },
-];
-
 export default function CoordinatorEventRegistrations() {
   const { eventId = "" } = useParams<{ eventId: string }>();
   const [query, setQuery] = useState("");
-  const [rows, setRows] = useState<RegistrationRow[]>(demoRegistrations);
+  const [rows, setRows] = useState<RegistrationRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!eventId) return;
+      try {
+        setIsLoading(true);
+        const res = await api.eventsAdmin.getEventRegistrations(eventId);
+        const mapped: RegistrationRow[] = (res.registrations || []).map((r: any) => ({
+          id: r._id || r.id,
+          rollNumber: r.userId?.rollNumber || "—",
+          name: r.userId?.name || "Unknown",
+          department: r.userId?.department || "—",
+          status: r.attendanceStatus || "pending",
+        }));
+        setRows(mapped);
+      } catch (err: any) {
+        toast.error(err.message || "Failed to load registrations");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, [eventId]);
 
   const filtered = useMemo(() => {
     const s = query.trim().toLowerCase();
@@ -45,8 +63,15 @@ export default function CoordinatorEventRegistrations() {
   }, [rows]);
 
   const setStatus = (id: string, status: AttendanceStatus) => {
-    setRows((prev) => prev.map((x) => (x.id === id ? { ...x, status } : x)));
-    toast.success(`Updated: ${status}`);
+    const row = rows.find((x) => x.id === id);
+    if (!row || !eventId) return;
+    api.eventsAdmin
+      .markAttendance(eventId, { rollNumber: row.rollNumber, status })
+      .then(() => {
+        setRows((prev) => prev.map((x) => (x.id === id ? { ...x, status } : x)));
+        toast.success(`Updated: ${status}`);
+      })
+      .catch((err: any) => toast.error(err.message || "Failed to update attendance"));
   };
 
   return (
@@ -56,7 +81,7 @@ export default function CoordinatorEventRegistrations() {
           <div>
             <h1 className="text-2xl font-bold">Event Registrations</h1>
             <p className="text-muted-foreground">
-              Attendance table for event <b>{eventId || "—"}</b>. (UI-only)
+              Attendance table for event <b>{eventId || "—"}</b>.
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -118,7 +143,7 @@ export default function CoordinatorEventRegistrations() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Attendance table</CardTitle>
-            <CardDescription>{filtered.length} row(s) shown.</CardDescription>
+            <CardDescription>{isLoading ? "Loading…" : `${filtered.length} row(s) shown.`}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -164,7 +189,7 @@ export default function CoordinatorEventRegistrations() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {filtered.length === 0 && (
+                  {!isLoading && filtered.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
                         No results.

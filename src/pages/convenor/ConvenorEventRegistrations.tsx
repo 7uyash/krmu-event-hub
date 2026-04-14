@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Search, Users, CheckCircle, XCircle, Clock } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 type AttendanceStatus = "present" | "absent" | "pending";
 
@@ -18,17 +20,34 @@ type Row = {
   status: AttendanceStatus;
 };
 
-const demoRows: Row[] = [
-  { id: "cr-01", rollNumber: "2023051", name: "Sahana R.", department: "CSE", status: "present" },
-  { id: "cr-02", rollNumber: "2023099", name: "Karan Patel", department: "CSE", status: "pending" },
-  { id: "cr-03", rollNumber: "2023122", name: "Vishal Rao", department: "MBA", status: "absent" },
-  { id: "cr-04", rollNumber: "2023170", name: "Pranav Joshi", department: "Law", status: "present" },
-];
-
 export default function ConvenorEventRegistrations() {
   const { eventId = "" } = useParams<{ eventId: string }>();
   const [q, setQ] = useState("");
-  const [rows, setRows] = useState<Row[]>(demoRows);
+  const [rows, setRows] = useState<Row[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!eventId) return;
+      try {
+        setIsLoading(true);
+        const res = await api.eventsAdmin.getEventRegistrations(eventId);
+        const mapped: Row[] = (res.registrations || []).map((r: any) => ({
+          id: r._id || r.id,
+          rollNumber: r.userId?.rollNumber || "—",
+          name: r.userId?.name || "Unknown",
+          department: r.userId?.department || "—",
+          status: r.attendanceStatus || "pending",
+        }));
+        setRows(mapped);
+      } catch (err: any) {
+        toast.error(err.message || "Failed to load registrations");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, [eventId]);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -46,7 +65,12 @@ export default function ConvenorEventRegistrations() {
   }, [rows]);
 
   const mark = (id: string, status: AttendanceStatus) => {
-    setRows((prev) => prev.map((x) => (x.id === id ? { ...x, status } : x)));
+    const row = rows.find((x) => x.id === id);
+    if (!row || !eventId) return;
+    api.eventsAdmin
+      .markAttendance(eventId, { rollNumber: row.rollNumber, status })
+      .then(() => setRows((prev) => prev.map((x) => (x.id === id ? { ...x, status } : x))))
+      .catch((err: any) => toast.error(err.message || "Failed to update attendance"));
   };
 
   return (
@@ -56,7 +80,7 @@ export default function ConvenorEventRegistrations() {
           <div>
             <h1 className="text-2xl font-bold">Registrations</h1>
             <p className="text-muted-foreground">
-              Attendance breakdown for event <b>{eventId || "—"}</b>. (UI-only)
+              Attendance breakdown for event <b>{eventId || "—"}</b>.
             </p>
           </div>
           <Badge variant="secondary" className="inline-flex items-center gap-2">
@@ -111,7 +135,7 @@ export default function ConvenorEventRegistrations() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Student table</CardTitle>
-            <CardDescription>{filtered.length} row(s) shown.</CardDescription>
+            <CardDescription>{isLoading ? "Loading…" : `${filtered.length} row(s) shown.`}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -157,7 +181,7 @@ export default function ConvenorEventRegistrations() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {filtered.length === 0 && (
+                  {!isLoading && filtered.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
                         No results.

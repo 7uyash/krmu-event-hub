@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Calendar, Download, Plus, Search, Users } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -7,55 +7,39 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
-type ConvenorEventRow = {
-  id: string;
-  title: string;
-  date: string;
-  venue: string;
-  status: "draft" | "upcoming" | "ongoing" | "completed" | "cancelled";
-  registrations: number;
-  attendanceMarked: number;
-};
-
-const demoEvents: ConvenorEventRow[] = [
-  {
-    id: "ce-01",
-    title: "Academic Seminar: Career Paths",
-    date: "2026-04-22",
-    venue: "Seminar Hall 3",
-    status: "upcoming",
-    registrations: 210,
-    attendanceMarked: 0,
-  },
-  {
-    id: "ce-02",
-    title: "Workshop: React Basics",
-    date: "2026-04-10",
-    venue: "Lab 4",
-    status: "ongoing",
-    registrations: 90,
-    attendanceMarked: 38,
-  },
-  {
-    id: "ce-03",
-    title: "Guest Lecture: AI Ethics",
-    date: "2026-03-15",
-    venue: "Auditorium B",
-    status: "completed",
-    registrations: 140,
-    attendanceMarked: 118,
-  },
-];
+import { api } from "@/lib/api";
+import { Event } from "@/types";
+import { toast } from "sonner";
 
 export default function ConvenorEvents() {
   const [q, setQ] = useState("");
+  const [events, setEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const rows = useMemo(() => {
     const s = q.trim().toLowerCase();
-    if (!s) return demoEvents;
-    return demoEvents.filter((e) => e.title.toLowerCase().includes(s) || e.venue.toLowerCase().includes(s));
-  }, [q]);
+    if (!s) return events;
+    return events.filter((e) => e.title.toLowerCase().includes(s) || e.venue.toLowerCase().includes(s));
+  }, [q, events]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setIsLoading(true);
+        const res = await api.eventsAdmin.getMyEvents();
+        const mapped = (res.events || []).map((e: any) => ({
+          ...e,
+          id: e._id?.toString() || e.id,
+        }));
+        setEvents(mapped);
+      } catch (err: any) {
+        toast.error(err.message || "Failed to load events");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   return (
     <DashboardLayout role="convenor">
@@ -63,7 +47,7 @@ export default function ConvenorEvents() {
         <div className="flex items-start justify-between gap-4 flex-col sm:flex-row">
           <div>
             <h1 className="text-2xl font-bold">My Events</h1>
-            <p className="text-muted-foreground">Create, track, and export event data. (UI-only)</p>
+            <p className="text-muted-foreground">Create, track, and export event data.</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" asChild>
@@ -96,7 +80,9 @@ export default function ConvenorEvents() {
             <div className="flex items-start justify-between gap-4 flex-col sm:flex-row">
               <div>
                 <CardTitle className="text-base">Events</CardTitle>
-                <CardDescription>{rows.length} event(s) shown.</CardDescription>
+                <CardDescription>
+                  {isLoading ? "Loading…" : `${rows.length} event(s) shown.`}
+                </CardDescription>
               </div>
               <div className="flex gap-2 flex-wrap">
                 <Button variant="outline" disabled>
@@ -125,13 +111,13 @@ export default function ConvenorEvents() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.map((e) => (
-                    <TableRow key={e.id}>
+                  {rows.map((e: any) => (
+                    <TableRow key={e._id || e.id}>
                       <TableCell>
                         <div className="font-medium">{e.title}</div>
                         <div className="text-xs text-muted-foreground inline-flex items-center gap-2">
                           <Users className="h-3.5 w-3.5" />
-                          {e.registrations} registered
+                          {e.registeredCount || 0} registered
                         </div>
                       </TableCell>
                       <TableCell>
@@ -146,28 +132,38 @@ export default function ConvenorEvents() {
                       </TableCell>
                       <TableCell className="max-w-[220px] truncate">{e.venue}</TableCell>
                       <TableCell>
-                        <Badge variant={e.status === "ongoing" ? "success" : e.status === "cancelled" ? "destructive" : "secondary"}>
+                        <Badge
+                          variant={
+                            e.status === "ongoing"
+                              ? "success"
+                              : e.status === "cancelled"
+                                ? "destructive"
+                                : "secondary"
+                          }
+                        >
                           {e.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">{e.registrations}</TableCell>
-                      <TableCell className="text-right">{e.attendanceMarked}</TableCell>
+                      <TableCell className="text-right">{e.registeredCount || 0}</TableCell>
+                      <TableCell className="text-right">{e.attendedCount || 0}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button size="sm" variant="outline" disabled>
-                            Manage
+                          <Button size="sm" variant="outline" asChild>
+                            <Link to={`/convenor/events/${(e._id || e.id)?.toString()}/registrations`}>
+                              Registrations
+                            </Link>
                           </Button>
-                          <Button size="sm" variant="outline" disabled>
-                            Close
+                          <Button size="sm" variant="outline" asChild>
+                            <Link to={`/convenor/events/${(e._id || e.id)?.toString()}/close`}>Finalize</Link>
                           </Button>
                         </div>
                       </TableCell>
                     </TableRow>
                   ))}
-                  {rows.length === 0 && (
+                  {!isLoading && rows.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
-                        No events found.
+                        No events found. Create one to see it here.
                       </TableCell>
                     </TableRow>
                   )}

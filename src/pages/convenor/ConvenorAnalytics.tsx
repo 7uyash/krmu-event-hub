@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Download, Filter, TrendingUp, Users } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 type RangeKey = "7d" | "30d" | "90d";
 
@@ -15,21 +17,50 @@ const ranges: { key: RangeKey; label: string }[] = [
   { key: "90d", label: "Last 90 days" },
 ];
 
-const demo: Record<RangeKey, { events: number; registrations: number; attendanceRate: number }> = {
-  "7d": { events: 2, registrations: 260, attendanceRate: 64 },
-  "30d": { events: 7, registrations: 980, attendanceRate: 71 },
-  "90d": { events: 18, registrations: 2510, attendanceRate: 69 },
-};
-
-const topEvents = [
-  { title: "Workshop: React Basics", registrations: 90, attendanceRate: 62 },
-  { title: "Seminar: Career Paths", registrations: 210, attendanceRate: 0 },
-  { title: "Guest Lecture: AI Ethics", registrations: 140, attendanceRate: 84 },
-];
-
 export default function ConvenorAnalytics() {
   const [range, setRange] = useState<RangeKey>("30d");
-  const k = useMemo(() => demo[range], [range]);
+  const [events, setEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.eventsAdmin
+      .getMyEvents()
+      .then((res) => setEvents(res.events || []))
+      .catch((err: any) => toast.error(err.message || "Failed to load analytics"));
+  }, []);
+
+  const cutoffDays = range === "7d" ? 7 : range === "30d" ? 30 : 90;
+  const filteredEvents = useMemo(() => {
+    const now = new Date();
+    return events.filter((e) => {
+      const d = new Date(e.date);
+      const diff = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
+      return diff <= cutoffDays;
+    });
+  }, [events, cutoffDays]);
+
+  const k = useMemo(() => {
+    const registrations = filteredEvents.reduce((acc, e) => acc + (e.registeredCount || 0), 0);
+    const attended = filteredEvents.reduce((acc, e) => acc + (e.attendedCount || 0), 0);
+    const attendanceRate = registrations ? Math.round((attended / registrations) * 100) : 0;
+    return {
+      events: filteredEvents.length,
+      registrations,
+      attendanceRate,
+    };
+  }, [filteredEvents]);
+
+  const topEvents = useMemo(
+    () =>
+      [...filteredEvents]
+        .sort((a, b) => (b.registeredCount || 0) - (a.registeredCount || 0))
+        .slice(0, 5)
+        .map((e) => ({
+          title: e.title,
+          registrations: e.registeredCount || 0,
+          attendanceRate: e.registeredCount ? Math.round(((e.attendedCount || 0) / e.registeredCount) * 100) : 0,
+        })),
+    [filteredEvents]
+  );
 
   return (
     <DashboardLayout role="convenor">
@@ -37,7 +68,7 @@ export default function ConvenorAnalytics() {
         <div className="flex items-start justify-between gap-4 flex-col sm:flex-row">
           <div>
             <h1 className="text-2xl font-bold">Analytics</h1>
-            <p className="text-muted-foreground">Your event performance. (UI-only)</p>
+            <p className="text-muted-foreground">Your event performance.</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" asChild>
@@ -101,7 +132,7 @@ export default function ConvenorAnalytics() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Top events</CardTitle>
-            <CardDescription>High-level ranking (placeholder).</CardDescription>
+            <CardDescription>Ranked by registrations in selected range.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {topEvents.map((e) => (

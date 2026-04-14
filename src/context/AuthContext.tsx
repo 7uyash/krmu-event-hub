@@ -5,7 +5,7 @@ import { User } from '@/types';
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  loginWithMicrosoft: (code: string) => Promise<any>;
+  loginWithMicrosoft: (code: string, requestedRole?: string) => Promise<any>;
   logout: () => void;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -70,8 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const loginWithMicrosoft = async (code: string) => {
-    const response = await api.auth.microsoftCallback(code);
+  const loginWithMicrosoft = async (code: string, requestedRole?: string) => {
+    const response = await api.auth.microsoftCallback(code, requestedRole);
     setToken(response.token);
     setUser(response.user);
     localStorage.setItem('token', response.token);

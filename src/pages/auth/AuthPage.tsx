@@ -56,6 +56,7 @@ export default function AuthPage() {
   // Handle Microsoft OAuth callback
   useEffect(() => {
     const code = searchParams.get('code');
+    const state = searchParams.get('state');
     const error = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 
@@ -67,14 +68,16 @@ export default function AuthPage() {
     }
 
     if (code) {
-      handleMicrosoftCallback(code);
+      // The redirect URI is fixed (often /auth/student). Use OAuth state to remember selected portal.
+      const requestedRole = state || role;
+      handleMicrosoftCallback(code, requestedRole);
     }
   }, [searchParams]);
 
-  const handleMicrosoftCallback = async (code: string) => {
+  const handleMicrosoftCallback = async (code: string, requestedRole: string) => {
     setIsLoading(true);
     try {
-      const response = await loginWithMicrosoft(code);
+      const response = await loginWithMicrosoft(code, requestedRole);
       toast.success('Logged in successfully!');
       
       // Redirect based on user's actual role from the API response, not URL
@@ -91,7 +94,7 @@ export default function AuthPage() {
   const handleMicrosoftLogin = async () => {
     setIsLoading(true);
     try {
-      const response = await api.auth.getMicrosoftAuthUrl();
+      const response = await api.auth.getMicrosoftAuthUrl(role);
       // Redirect to Microsoft login
       window.location.href = response.authUrl;
     } catch (error: any) {
@@ -151,14 +154,14 @@ export default function AuthPage() {
                 Welcome to E-Attend
               </CardTitle>
               <CardDescription>
-                Sign in with your K. R. Mangalam University Microsoft account
+                Sign in with your Microsoft account
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                     <div className="space-y-2">
                   <p className="text-sm text-muted-foreground text-center">
-                    Use your @krmu.edu.in email address to sign in
+                    Use the same email across different portals (for now)
                   </p>
                 </div>
 
@@ -174,7 +177,7 @@ export default function AuthPage() {
                 </Button>
 
                 <div className="text-center text-xs text-muted-foreground space-y-1">
-                  <p>Only @krmu.edu.in email addresses are allowed</p>
+                  <p>Email domain restriction is disabled (dev mode)</p>
                   <p>Your account will be automatically created on first login</p>
                 </div>
               </div>

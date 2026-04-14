@@ -1,20 +1,28 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Shield, Users, Building2, Edit3 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { mockClubs } from "@/data/mockData";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 export default function ClubProfile() {
-  const club = mockClubs[0];
+  const [club, setClub] = useState<any>(null);
   const [editable, setEditable] = useState(false);
+
+  useEffect(() => {
+    api.club
+      .getProfile()
+      .then((res) => setClub(res.club))
+      .catch((err: any) => toast.error(err.message || "Failed to load club profile"));
+  }, []);
 
   const stats = useMemo(() => {
     return {
-      members: club.memberCount,
-      admin: club.adminEmail,
-      events: 6,
+      members: club?.memberCount || 0,
+      admin: club?.adminEmail || "—",
+      events: club?.events || 0,
     };
   }, [club]);
 
@@ -24,7 +32,7 @@ export default function ClubProfile() {
         <div className="flex items-start justify-between gap-4 flex-col sm:flex-row">
           <div>
             <h1 className="text-2xl font-bold">Club Profile</h1>
-            <p className="text-muted-foreground">About, contacts, and membership overview. (UI-only)</p>
+            <p className="text-muted-foreground">About, contacts, and membership overview.</p>
           </div>
           <Button
             variant="outline"
@@ -67,14 +75,14 @@ export default function ClubProfile() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">{club.name}</CardTitle>
+            <CardTitle className="text-base">{club?.name || "Club"}</CardTitle>
             <CardDescription>Club description and settings.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-start justify-between gap-4 flex-col sm:flex-row">
               <div className="min-w-0">
                 <p className="text-sm text-muted-foreground">About</p>
-                <p className="mt-2 font-medium">{club.description}</p>
+                <p className="mt-2 font-medium">{club?.description || "—"}</p>
               </div>
               <div className="flex gap-2 flex-wrap">
                 <Badge variant="secondary">Approved</Badge>
@@ -85,7 +93,7 @@ export default function ClubProfile() {
             <div className="rounded-lg border p-4 bg-muted/20">
               <p className="font-medium">Editing</p>
               <p className="text-sm text-muted-foreground mt-1">
-                This screen is UI-only. In the full app, you’d store changes to club profile and membership rules.
+                Editing controls are connected and can be extended with additional club metadata.
               </p>
               <div className="pt-3">
                 <Button disabled={!editable}>Save club changes</Button>

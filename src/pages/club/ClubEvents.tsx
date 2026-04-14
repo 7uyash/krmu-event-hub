@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Calendar, Download, Plus, Search, Users } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -7,43 +7,40 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
-type ClubEventRow = {
-  id: string;
-  title: string;
-  date: string;
-  venue: string;
-  status: "draft" | "upcoming" | "ongoing" | "completed" | "cancelled";
-  registrations: number;
-};
-
-const demoClubEvents: ClubEventRow[] = [
-  {
-    id: "cl-01",
-    title: "Coding Club: Git Sprint",
-    date: "2026-04-16",
-    venue: "Lab 6",
-    status: "upcoming",
-    registrations: 78,
-  },
-  {
-    id: "cl-02",
-    title: "Hack Night",
-    date: "2026-04-02",
-    venue: "Innovation Hub",
-    status: "completed",
-    registrations: 64,
-  },
-];
+import { api } from "@/lib/api";
+import { Event } from "@/types";
+import { toast } from "sonner";
 
 export default function ClubEvents() {
   const [q, setQ] = useState("");
+  const [events, setEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const rows = useMemo(() => {
     const s = q.trim().toLowerCase();
-    if (!s) return demoClubEvents;
-    return demoClubEvents.filter((e) => e.title.toLowerCase().includes(s) || e.venue.toLowerCase().includes(s));
-  }, [q]);
+    const base = events.filter((e) => !!e.isClubOnly);
+    if (!s) return base;
+    return base.filter((e) => e.title.toLowerCase().includes(s) || e.venue.toLowerCase().includes(s));
+  }, [q, events]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setIsLoading(true);
+        const res = await api.eventsAdmin.getMyEvents();
+        const mapped = (res.events || []).map((e: any) => ({
+          ...e,
+          id: e._id?.toString() || e.id,
+        }));
+        setEvents(mapped);
+      } catch (err: any) {
+        toast.error(err.message || "Failed to load club events");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   return (
     <DashboardLayout role="club">
@@ -51,7 +48,7 @@ export default function ClubEvents() {
         <div className="flex items-start justify-between gap-4 flex-col sm:flex-row">
           <div>
             <h1 className="text-2xl font-bold">Club Events</h1>
-            <p className="text-muted-foreground">Create and track club-only events. (UI-only)</p>
+            <p className="text-muted-foreground">Create and track club-only events.</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" asChild>
@@ -86,7 +83,7 @@ export default function ClubEvents() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Events</CardTitle>
-            <CardDescription>{rows.length} event(s) shown.</CardDescription>
+            <CardDescription>{isLoading ? "Loading…" : `${rows.length} event(s) shown.`}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -102,13 +99,13 @@ export default function ClubEvents() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.map((e) => (
-                    <TableRow key={e.id}>
+                  {rows.map((e: any) => (
+                    <TableRow key={e._id || e.id}>
                       <TableCell>
                         <div className="font-medium">{e.title}</div>
                         <div className="text-xs text-muted-foreground inline-flex items-center gap-2">
                           <Users className="h-3.5 w-3.5" />
-                          {e.registrations} registered
+                          {e.registeredCount || 0} registered
                         </div>
                       </TableCell>
                       <TableCell>
@@ -127,7 +124,7 @@ export default function ClubEvents() {
                           {e.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">{e.registrations}</TableCell>
+                      <TableCell className="text-right">{e.registeredCount || 0}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button size="sm" variant="outline" disabled>
@@ -140,10 +137,10 @@ export default function ClubEvents() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {rows.length === 0 && (
+                  {!isLoading && rows.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
-                        No events found.
+                        No club events found. Create one to see it here.
                       </TableCell>
                     </TableRow>
                   )}

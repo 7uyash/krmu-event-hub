@@ -122,6 +122,58 @@ router.get('/convenor/my-events', authenticate, async (req, res) => {
   }
 });
 
+// Get events assigned to coordinator (by coordinatorEmail)
+router.get('/coordinator/my-events', authenticate, async (req, res) => {
+  try {
+    const user = await Student.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const events = await Event.find({ coordinatorEmail: user.email })
+      .sort({ date: 1, time: 1 })
+      .populate('createdBy', 'name email')
+      .select('-__v');
+
+    res.json({ events });
+  } catch (error) {
+    console.error('Get coordinator events error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Update event status (convenor/coordinator/admin)
+router.patch('/:eventId/status', authenticate, async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const { status, isOpen } = req.body;
+
+    if (!['upcoming', 'ongoing', 'completed', 'cancelled'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status value' });
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+
+    event.status = status;
+    if (typeof isOpen === 'boolean') event.isOpen = isOpen;
+    await event.save();
+
+    res.json({
+      message: 'Event status updated',
+      event: {
+        id: event._id.toString(),
+        ...event.toObject(),
+      },
+    });
+  } catch (error) {
+    console.error('Update event status error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Get event registrations (for coordinators/convenors)
 router.get('/:eventId/registrations', authenticate, async (req, res) => {
   try {

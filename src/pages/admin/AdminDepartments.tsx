@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Building2, Download, Search } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 type DepartmentRow = {
   name: string;
@@ -15,21 +17,31 @@ type DepartmentRow = {
   attendanceRate: number; // 0..100
 };
 
-const demoDepartments: DepartmentRow[] = [
-  { name: "CSE", events: 18, registrations: 2450, attendanceRate: 78 },
-  { name: "Management", events: 12, registrations: 1610, attendanceRate: 71 },
-  { name: "Law", events: 9, registrations: 940, attendanceRate: 67 },
-  { name: "Sports", events: 7, registrations: 820, attendanceRate: 74 },
-];
-
 export default function AdminDepartments() {
   const [q, setQ] = useState("");
+  const [departments, setDepartments] = useState<DepartmentRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setIsLoading(true);
+        const res = await api.admin.getDepartments();
+        setDepartments(res.departments || []);
+      } catch (err: any) {
+        toast.error(err.message || "Failed to load departments");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const rows = useMemo(() => {
     const s = q.trim().toLowerCase();
-    if (!s) return demoDepartments;
-    return demoDepartments.filter((d) => d.name.toLowerCase().includes(s));
-  }, [q]);
+    if (!s) return departments;
+    return departments.filter((d) => d.name.toLowerCase().includes(s));
+  }, [q, departments]);
 
   return (
     <DashboardLayout role="admin" userName="Super Admin">
@@ -37,7 +49,7 @@ export default function AdminDepartments() {
         <div className="flex items-start justify-between gap-4 flex-col sm:flex-row">
           <div>
             <h1 className="text-2xl font-bold">Departments</h1>
-            <p className="text-muted-foreground">Department performance overview. (UI-only)</p>
+            <p className="text-muted-foreground">Department performance overview.</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" asChild>
@@ -70,7 +82,7 @@ export default function AdminDepartments() {
               <CardDescription>Quick glance by attendance rate.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {rows
+              {(isLoading ? [] : rows)
                 .slice()
                 .sort((a, b) => b.attendanceRate - a.attendanceRate)
                 .map((d) => (
@@ -85,8 +97,11 @@ export default function AdminDepartments() {
                     <Progress value={d.attendanceRate} className="h-2" />
                   </div>
                 ))}
-              {rows.length === 0 && (
+              {!isLoading && rows.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-6">No departments found.</p>
+              )}
+              {isLoading && (
+                <p className="text-sm text-muted-foreground text-center py-6">Loading…</p>
               )}
             </CardContent>
           </Card>
@@ -116,7 +131,7 @@ export default function AdminDepartments() {
                         <TableCell className="text-right">{d.attendanceRate}%</TableCell>
                       </TableRow>
                     ))}
-                    {rows.length === 0 && (
+                    {!isLoading && rows.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
                           No results.

@@ -16,7 +16,7 @@ const generateToken = (userId, userRole = 'student') => {
 // Microsoft OAuth callback - handles the authorization code
 router.post('/microsoft/callback', async (req, res) => {
   try {
-    const { code } = req.body;
+    const { code, requestedRole } = req.body;
 
     if (!code) {
       return res.status(400).json({ message: 'Authorization code is required' });
@@ -61,14 +61,16 @@ router.post('/microsoft/callback', async (req, res) => {
     const microsoftUser = userResponse.data;
     const email = microsoftUser.mail || microsoftUser.userPrincipalName;
 
-    // Validate domain - must be @krmu.edu.in
-    if (!email || !email.endsWith('@krmu.edu.in')) {
-      return res.status(403).json({
-        message: 'Only K. R. Mangalam University email addresses (@krmu.edu.in) are allowed',
-      });
+    if (!email) {
+      return res.status(400).json({ message: 'Email address not available from Microsoft account' });
     }
 
-    // Extract roll number from email (assuming format: rollnumber@krmu.edu.in)
+    // For development/demo: allow selecting role based on portal user chose.
+    const allowedRoles = new Set(['student', 'coordinator', 'convenor', 'club', 'admin']);
+    const normalizedRequestedRole =
+      typeof requestedRole === 'string' && allowedRoles.has(requestedRole) ? requestedRole : undefined;
+
+    // Extract identifier from email (fallback when roll number is unknown)
     const rollNumber = email.split('@')[0];
 
     // Find or create student
@@ -81,7 +83,7 @@ router.post('/microsoft/callback', async (req, res) => {
         name: microsoftUser.displayName || microsoftUser.givenName + ' ' + microsoftUser.surname,
         rollNumber,
         department: microsoftUser.department || '',
-        role: 'student',
+        role: normalizedRequestedRole || 'student',
         // No password needed for OAuth
         password: crypto.randomBytes(32).toString('hex'), // Random password, won't be used
         microsoftId: microsoftUser.id,
@@ -92,6 +94,9 @@ router.post('/microsoft/callback', async (req, res) => {
       // Update existing student with Microsoft info
       student.name = microsoftUser.displayName || student.name;
       student.microsoftId = microsoftUser.id;
+      if (normalizedRequestedRole) {
+        student.role = normalizedRequestedRole;
+      }
       if (microsoftUser.department) {
         student.department = microsoftUser.department;
       }
@@ -158,13 +163,17 @@ router.get('/microsoft/url', (req, res) => {
     });
   }
 
+  const allowedRoles = new Set(['student', 'coordinator', 'convenor', 'club', 'admin']);
+  const requestedRole =
+    typeof req.query.role === 'string' && allowedRoles.has(req.query.role) ? req.query.role : undefined;
+
   const authUrl = `https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID}/oauth2/v2.0/authorize?` +
     `client_id=${process.env.MICROSOFT_CLIENT_ID}&` +
     `response_type=code&` +
     `redirect_uri=${encodeURIComponent(process.env.MICROSOFT_REDIRECT_URI)}&` +
     `response_mode=query&` +
     `scope=openid profile email User.Read&` +
-    `domain_hint=krmu.edu.in`;
+    (requestedRole ? `&state=${encodeURIComponent(requestedRole)}` : '');
 
   res.json({ authUrl });
 });

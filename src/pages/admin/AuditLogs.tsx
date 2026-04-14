@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, Shield, Clock3, Filter } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 type ActionType = "LOGIN" | "EVENT_CREATE" | "ATTENDANCE_MARK" | "ROLE_CHANGE" | "EXPORT";
 
@@ -33,17 +35,41 @@ const actionBadgeVariant = (action: ActionType) => {
 export default function AuditLogs() {
   const [q, setQ] = useState("");
   const [type, setType] = useState<"all" | ActionType>("all");
+  const [logs, setLogs] = useState<LogRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setIsLoading(true);
+        const res = await api.admin.getAuditLogs();
+        const mapped = (res.logs || []).map((l: any) => ({
+          id: l._id?.toString() || l.id,
+          at: l.at || l.createdAt,
+          actor: l.actor || l.userEmail || "system",
+          action: l.action,
+          detail: l.detail || l.message || "",
+        }));
+        setLogs(mapped);
+      } catch (err: any) {
+        toast.error(err.message || "Failed to load audit logs");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return demoLogs.filter((l) => {
+    return logs.filter((l) => {
       const matchesQ = s === "" || l.actor.toLowerCase().includes(s) || l.detail.toLowerCase().includes(s) || l.action.toLowerCase().includes(s);
       const matchesType = type === "all" ? true : l.action === type;
       return matchesQ && matchesType;
     });
-  }, [q, type]);
+  }, [q, type, logs]);
 
-  const total = demoLogs.length;
+  const total = logs.length;
 
   return (
     <DashboardLayout role="admin">
@@ -54,11 +80,11 @@ export default function AuditLogs() {
               <Shield className="h-6 w-6" />
               Audit Logs
             </h1>
-            <p className="text-muted-foreground">Track administrative and attendance actions. (UI-only)</p>
+            <p className="text-muted-foreground">Track administrative and attendance actions.</p>
           </div>
           <Badge variant="secondary" className="inline-flex items-center gap-2">
             <Clock3 className="h-4 w-4" />
-            {total} total
+            {isLoading ? "Loading…" : `${total} total`}
           </Badge>
         </div>
 
@@ -118,7 +144,7 @@ export default function AuditLogs() {
                   {filtered.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
-                        No matching logs.
+                        {isLoading ? "Loading…" : "No matching logs."}
                       </TableCell>
                     </TableRow>
                   )}

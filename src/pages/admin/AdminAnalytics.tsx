@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Calendar, Download, Filter, TrendingUp } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 type RangeKey = "7d" | "30d" | "90d" | "ytd";
 
@@ -16,24 +18,48 @@ const ranges: { key: RangeKey; label: string }[] = [
   { key: "ytd", label: "Year to date" },
 ];
 
-const demoKpis: Record<RangeKey, { events: number; registrations: number; attendanceRate: number }> = {
-  "7d": { events: 8, registrations: 920, attendanceRate: 73 },
-  "30d": { events: 22, registrations: 3840, attendanceRate: 71 },
-  "90d": { events: 61, registrations: 10210, attendanceRate: 69 },
-  ytd: { events: 188, registrations: 32240, attendanceRate: 70 },
-};
-
-const categorySplit = [
-  { name: "Workshop", pct: 35 },
-  { name: "Cultural", pct: 25 },
-  { name: "Sports", pct: 18 },
-  { name: "Academic", pct: 17 },
-  { name: "Club", pct: 5 },
-];
-
 export default function AdminAnalytics() {
   const [range, setRange] = useState<RangeKey>("30d");
-  const kpis = useMemo(() => demoKpis[range], [range]);
+  const [events, setEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    api.admin
+      .getEvents()
+      .then((res) => setEvents(res.events || []))
+      .catch((err: any) => toast.error(err.message || "Failed to load analytics"));
+  }, []);
+
+  const cutoffDays = range === "7d" ? 7 : range === "30d" ? 30 : range === "90d" ? 90 : 365;
+  const filteredEvents = useMemo(() => {
+    const now = new Date();
+    return events.filter((e) => {
+      const d = new Date(e.date);
+      const diff = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
+      return diff <= cutoffDays;
+    });
+  }, [events, cutoffDays]);
+
+  const kpis = useMemo(() => {
+    const registrations = filteredEvents.reduce((acc, e) => acc + (e.registeredCount || 0), 0);
+    const attendance = filteredEvents.reduce((acc, e) => acc + (e.attendedCount || 0), 0);
+    return {
+      events: filteredEvents.length,
+      registrations,
+      attendanceRate: registrations ? Math.round((attendance / registrations) * 100) : 0,
+    };
+  }, [filteredEvents]);
+
+  const categorySplit = useMemo(() => {
+    const counts: Record<string, number> = {};
+    filteredEvents.forEach((e) => {
+      counts[e.category] = (counts[e.category] || 0) + 1;
+    });
+    const total = filteredEvents.length || 1;
+    return Object.entries(counts).map(([name, count]) => ({
+      name,
+      pct: Math.round((count / total) * 100),
+    }));
+  }, [filteredEvents]);
 
   return (
     <DashboardLayout role="admin" userName="Super Admin">
@@ -41,7 +67,7 @@ export default function AdminAnalytics() {
         <div className="flex items-start justify-between gap-4 flex-col sm:flex-row">
           <div>
             <h1 className="text-2xl font-bold">Analytics</h1>
-            <p className="text-muted-foreground">University-wide metrics and trends. (UI-only)</p>
+            <p className="text-muted-foreground">University-wide metrics and trends.</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" asChild>

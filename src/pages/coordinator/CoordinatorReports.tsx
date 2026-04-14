@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Download, Calendar, Filter } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 type ReportRow = {
   id: string;
@@ -15,24 +17,47 @@ type ReportRow = {
   rows: number;
 };
 
-const demoReports: ReportRow[] = [
-  { id: "rep-01", eventTitle: "Workshop: Data Visualization", createdAt: "2026-04-10T12:05:00", format: "Excel", rows: 120 },
-  { id: "rep-02", eventTitle: "Cultural Fest Auditions", createdAt: "2026-04-14T17:20:00", format: "CSV", rows: 310 },
-  { id: "rep-03", eventTitle: "Seminar: Research Ethics", createdAt: "2026-03-05T10:40:00", format: "CSV", rows: 82 },
-];
-
 export default function CoordinatorReports() {
   const [q, setQ] = useState("");
   const [format, setFormat] = useState<"all" | ReportRow["format"]>("all");
+  const [reports, setReports] = useState<ReportRow[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const eventsRes = await api.eventsAdmin.getCoordinatorEvents();
+        const rows: ReportRow[] = (eventsRes.events || []).flatMap((e: any) => [
+          {
+            id: `${e._id || e.id}-csv`,
+            eventTitle: e.title,
+            createdAt: e.createdAt || e.date,
+            format: "CSV",
+            rows: e.registeredCount || 0,
+          },
+          {
+            id: `${e._id || e.id}-xlsx`,
+            eventTitle: e.title,
+            createdAt: e.createdAt || e.date,
+            format: "Excel",
+            rows: e.registeredCount || 0,
+          },
+        ]);
+        setReports(rows);
+      } catch (err: any) {
+        toast.error(err.message || "Failed to load reports");
+      }
+    };
+    load();
+  }, []);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return demoReports.filter((r) => {
+    return reports.filter((r) => {
       const matchesQ = s === "" || r.eventTitle.toLowerCase().includes(s);
       const matchesFormat = format === "all" ? true : r.format === format;
       return matchesQ && matchesFormat;
     });
-  }, [q, format]);
+  }, [q, format, reports]);
 
   return (
     <DashboardLayout role="coordinator">
@@ -40,7 +65,7 @@ export default function CoordinatorReports() {
         <div className="flex items-start justify-between gap-4 flex-col sm:flex-row">
           <div>
             <h1 className="text-2xl font-bold">Reports</h1>
-            <p className="text-muted-foreground">Attendance exports made by this coordinator. (UI-only)</p>
+            <p className="text-muted-foreground">Attendance exports made by this coordinator.</p>
           </div>
           <Badge variant="secondary" className="inline-flex items-center gap-2">
             <Calendar className="h-4 w-4" />
@@ -103,7 +128,7 @@ export default function CoordinatorReports() {
                       </TableCell>
                       <TableCell className="text-right">{r.rows.toLocaleString()}</TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" variant="outline" disabled>
+                        <Button size="sm" variant="outline">
                           <Download className="h-4 w-4 mr-2" />
                           Download
                         </Button>

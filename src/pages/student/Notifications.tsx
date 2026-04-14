@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Bell, CheckCircle, CircleDashed, Filter } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 type Notification = {
   id: string;
@@ -15,34 +16,17 @@ type Notification = {
   read: boolean;
 };
 
-const mockNotifications: Notification[] = [
-  {
-    id: "n-01",
-    title: "Registration confirmed",
-    message: "You are registered for the upcoming event. Keep your roll number handy.",
-    createdAt: "2026-04-01T10:15:00",
-    read: false,
-  },
-  {
-    id: "n-02",
-    title: "Attendance marked",
-    message: "Your attendance was marked as Present.",
-    createdAt: "2026-03-27T17:40:00",
-    read: true,
-  },
-  {
-    id: "n-03",
-    title: "Event updates",
-    message: "Venue details have been updated for your scheduled event.",
-    createdAt: "2026-03-20T09:05:00",
-    read: false,
-  },
-];
-
 export default function StudentNotifications() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "unread">("unread");
-  const [items, setItems] = useState<Notification[]>(mockNotifications);
+  const [items, setItems] = useState<Notification[]>([]);
+
+  useEffect(() => {
+    api.profile
+      .getNotifications()
+      .then((res) => setItems(res.notifications || []))
+      .catch((err: any) => toast.error(err.message || "Failed to load notifications"));
+  }, []);
 
   const filtered = useMemo(() => {
     const s = query.trim().toLowerCase();

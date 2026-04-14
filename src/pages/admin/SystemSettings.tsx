@@ -1,16 +1,30 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Settings, ShieldCheck, Globe, RefreshCw } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
 
 export default function SystemSettings() {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [lockRegistrations, setLockRegistrations] = useState(false);
   const [require2FA, setRequire2FA] = useState(false);
   const [defaultAttendancePolicy, setDefaultAttendancePolicy] = useState<"strict" | "normal">("normal");
+
+  useEffect(() => {
+    api.admin
+      .getSystemSettings()
+      .then((res) => {
+        const s = res.settings || {};
+        setMaintenanceMode(!!s.maintenanceMode);
+        setLockRegistrations(!!s.lockRegistrations);
+        setRequire2FA(!!s.require2FA);
+        setDefaultAttendancePolicy(s.defaultAttendancePolicy === "strict" ? "strict" : "normal");
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <DashboardLayout role="admin">
@@ -20,7 +34,7 @@ export default function SystemSettings() {
             <Settings className="h-6 w-6" />
             System Settings
           </h1>
-          <p className="text-muted-foreground">Operational configuration for the platform. (UI-only)</p>
+          <p className="text-muted-foreground">Operational configuration for the platform.</p>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
@@ -93,7 +107,17 @@ export default function SystemSettings() {
           </CardHeader>
           <CardContent className="flex gap-3 flex-col sm:flex-row">
             <Button
-              onClick={() => toast.success("Settings saved (UI-only)")}
+              onClick={() =>
+                api.admin
+                  .updateSystemSettings({
+                    maintenanceMode,
+                    lockRegistrations,
+                    require2FA,
+                    defaultAttendancePolicy,
+                  })
+                  .then(() => toast.success("Settings saved"))
+                  .catch((err: any) => toast.error(err.message || "Failed to save settings"))
+              }
             >
               Save changes
             </Button>
@@ -104,7 +128,7 @@ export default function SystemSettings() {
                 setLockRegistrations(false);
                 setRequire2FA(false);
                 setDefaultAttendancePolicy("normal");
-                toast.success("Reset completed (UI-only)");
+                toast.success("Reset completed");
               }}
             >
               Reset

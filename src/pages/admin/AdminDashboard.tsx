@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Calendar, Users, BarChart3, Building2, TrendingUp, CheckCircle } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatCard } from '@/components/stats/StatCard';
@@ -5,22 +6,48 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { mockEvents, mockDashboardStats, departmentStats } from '@/data/mockData';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 const COLORS = ['hsl(222, 59%, 28%)', 'hsl(175, 84%, 32%)', 'hsl(262, 83%, 58%)', 'hsl(43, 96%, 56%)', 'hsl(340, 82%, 52%)'];
 
-const categoryData = [
-  { name: 'Workshop', value: 35 },
-  { name: 'Cultural', value: 25 },
-  { name: 'Sports', value: 20 },
-  { name: 'Academic', value: 15 },
-  { name: 'Club', value: 5 },
-];
-
 export default function AdminDashboard() {
-  const recentEvents = mockEvents.slice(0, 5);
+  const [events, setEvents] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+
+  useEffect(() => {
+    Promise.all([api.admin.getEvents(), api.admin.getDepartments()])
+      .then(([eventsRes, deptRes]) => {
+        setEvents(eventsRes.events || []);
+        setDepartments(deptRes.departments || []);
+      })
+      .catch((err: any) => toast.error(err.message || 'Failed to load admin overview'));
+  }, []);
+
+  const recentEvents = useMemo(() => events.slice(0, 5), [events]);
+  const stats = useMemo(() => {
+    const totalRegistrations = events.reduce((acc, e) => acc + (e.registeredCount || 0), 0);
+    const totalAttendance = events.reduce((acc, e) => acc + (e.attendedCount || 0), 0);
+    return {
+      totalEvents: events.length,
+      totalRegistrations,
+      totalAttendance,
+      upcomingEvents: events.filter((e) => e.status === 'upcoming').length,
+    };
+  }, [events]);
+  const departmentStats = useMemo(
+    () => departments.map((d: any) => ({ name: d.name, events: d.events, attendance: d.registrations })),
+    [departments]
+  );
+  const categoryData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    events.forEach((e) => {
+      counts[e.category] = (counts[e.category] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [events]);
 
   return (
     <DashboardLayout role="admin" userName="Super Admin">
@@ -35,27 +62,27 @@ export default function AdminDashboard() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Total Events"
-            value={mockDashboardStats.totalEvents}
+            value={stats.totalEvents}
             icon={<Calendar className="h-6 w-6" />}
             trend={{ value: 12, isPositive: true }}
             variant="admin"
           />
           <StatCard
             title="Total Registrations"
-            value={mockDashboardStats.totalRegistrations.toLocaleString()}
+            value={stats.totalRegistrations.toLocaleString()}
             icon={<Users className="h-6 w-6" />}
             trend={{ value: 8, isPositive: true }}
             variant="admin"
           />
           <StatCard
             title="Total Attendance"
-            value={mockDashboardStats.totalAttendance.toLocaleString()}
+            value={stats.totalAttendance.toLocaleString()}
             icon={<CheckCircle className="h-6 w-6" />}
             variant="coordinator"
           />
           <StatCard
             title="Upcoming Events"
-            value={mockDashboardStats.upcomingEvents}
+            value={stats.upcomingEvents}
             icon={<TrendingUp className="h-6 w-6" />}
             variant="convenor"
           />
@@ -216,6 +243,18 @@ export default function AdminDashboard() {
                   <Link to="/admin/analytics">
                     <BarChart3 className="h-4 w-4 mr-2" />
                     View Analytics
+                  </Link>
+                </Button>
+                <Button variant="outline" className="w-full justify-start" asChild>
+                  <Link to="/admin/audit-logs">
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Audit Logs
+                  </Link>
+                </Button>
+                <Button variant="outline" className="w-full justify-start" asChild>
+                  <Link to="/admin/system-settings">
+                    <Building2 className="h-4 w-4 mr-2" />
+                    System Settings
                   </Link>
                 </Button>
               </CardContent>
