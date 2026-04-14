@@ -12,6 +12,7 @@ export interface User {
   email: string;
   role: UserRole;
   rollNumber?: string;
+  school?: string;
   department?: string;
   avatar?: string;
 }

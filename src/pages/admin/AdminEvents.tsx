@@ -14,6 +14,10 @@ import { toast } from "sonner";
 export default function AdminEvents() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"all" | Event["status"]>("all");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [isOpen, setIsOpen] = useState<"all" | "true" | "false">("all");
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -21,7 +25,13 @@ export default function AdminEvents() {
     const load = async () => {
       try {
         setIsLoading(true);
-        const res = await api.admin.getEvents({ q, status: status === "all" ? undefined : status });
+        const res = await api.admin.getEvents({
+          q,
+          status: status === "all" ? undefined : status,
+          fromDate: fromDate || undefined,
+          toDate: toDate || undefined,
+          isOpen: isOpen === "all" ? undefined : isOpen,
+        });
         const mapped = (res.events || []).map((e: any) => ({
           ...e,
           id: e._id?.toString() || e.id,
@@ -34,7 +44,7 @@ export default function AdminEvents() {
       }
     };
     load();
-  }, [q, status]);
+  }, [q, status, fromDate, toDate, isOpen]);
 
   const rows = useMemo(() => {
     return events;
@@ -85,12 +95,29 @@ export default function AdminEvents() {
                   {s}
                 </Button>
               ))}
-              <Button size="sm" variant="outline" disabled>
+              <Button size="sm" variant="outline" onClick={() => setShowAdvanced((v) => !v)}>
                 <SlidersHorizontal className="h-4 w-4 mr-2" />
-                Advanced
+                {showAdvanced ? "Hide Advanced" : "Advanced"}
               </Button>
             </div>
           </CardContent>
+          {showAdvanced && (
+            <CardContent className="pt-0 grid md:grid-cols-3 gap-3">
+              <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+              <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+              <div className="flex gap-2">
+                <Button size="sm" variant={isOpen === "all" ? "default" : "outline"} onClick={() => setIsOpen("all")}>
+                  Any
+                </Button>
+                <Button size="sm" variant={isOpen === "true" ? "default" : "outline"} onClick={() => setIsOpen("true")}>
+                  Open
+                </Button>
+                <Button size="sm" variant={isOpen === "false" ? "default" : "outline"} onClick={() => setIsOpen("false")}>
+                  Closed
+                </Button>
+              </div>
+            </CardContent>
+          )}
         </Card>
 
         <Card>

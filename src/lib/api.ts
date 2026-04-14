@@ -95,10 +95,21 @@ export const api = {
   // Profile endpoints
   profile: {
     get: () => api.request('/profile'),
+    getOptions: () => api.request('/profile/options'),
     update: (data: { name?: string; department?: string }) =>
       api.request('/profile', {
         method: 'PUT',
         body: JSON.stringify(data),
+      }),
+    updateAcademic: (data: { school?: string; department?: string }) =>
+      api.request('/profile/academic', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    updateClubs: (clubIds: string[]) =>
+      api.request('/profile/clubs', {
+        method: 'PUT',
+        body: JSON.stringify({ clubIds }),
       }),
     updatePreferences: (data: {
       emailDigest?: boolean;
@@ -112,6 +123,10 @@ export const api = {
         body: JSON.stringify(data),
       }),
     getNotifications: () => api.request('/profile/notifications'),
+    markNotificationRead: (id: string) =>
+      api.request(`/profile/notifications/${id}/read`, { method: 'PATCH' }),
+    markAllNotificationsRead: () =>
+      api.request('/profile/notifications/read-all', { method: 'PATCH' }),
   },
 
   // Event admin endpoints (for convenors/coordinators)
@@ -155,11 +170,14 @@ export const api = {
   },
 
   admin: {
-    getEvents: (params?: { q?: string; status?: string; category?: string }) => {
+    getEvents: (params?: { q?: string; status?: string; category?: string; fromDate?: string; toDate?: string; isOpen?: string }) => {
       const q = new URLSearchParams();
       if (params?.q) q.set('q', params.q);
       if (params?.status) q.set('status', params.status);
       if (params?.category) q.set('category', params.category);
+      if (params?.fromDate) q.set('fromDate', params.fromDate);
+      if (params?.toDate) q.set('toDate', params.toDate);
+      if (params?.isOpen) q.set('isOpen', params.isOpen);
       const qs = q.toString();
       return api.request(`/admin/events${qs ? `?${qs}` : ''}`);
     },
@@ -171,6 +189,16 @@ export const api = {
     },
     getDepartments: () => api.request('/admin/departments'),
     getAuditLogs: () => api.request('/admin/audit-logs'),
+    updateUserRole: (userId: string, role: 'student' | 'coordinator' | 'convenor' | 'club' | 'admin') =>
+      api.request(`/admin/users/${userId}/role`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role }),
+      }),
+    updateUserStatus: (userId: string, status: 'active' | 'disabled') =>
+      api.request(`/admin/users/${userId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      }),
     getSystemSettings: () => api.request('/admin/system-settings'),
     updateSystemSettings: (data: {
       maintenanceMode: boolean;
@@ -195,6 +223,11 @@ export const api = {
 
   club: {
     getProfile: () => api.request('/club/profile'),
+    updateProfile: (data: { name?: string; description?: string }) =>
+      api.request('/club/profile', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
     getMembers: (q?: string) => api.request(`/club/members${q ? `?q=${encodeURIComponent(q)}` : ''}`),
     importMembers: (rollNumbers: string[]) =>
       api.request('/club/members/import', {

@@ -29,10 +29,19 @@ const studentSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  school: {
+    type: String,
+    trim: true,
+  },
   role: {
     type: String,
     default: 'student',
     enum: ['student', 'coordinator', 'convenor', 'club', 'admin'],
+  },
+  status: {
+    type: String,
+    enum: ['active', 'disabled'],
+    default: 'active',
   },
   avatar: {
     type: String,
@@ -49,6 +58,17 @@ const studentSchema = new mongoose.Schema({
     shareProfile: { type: Boolean, default: false },
     sessionLock: { type: Boolean, default: true },
   },
+  joinedClubIds: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Student',
+    },
+  ],
+  readNotificationIds: [
+    {
+      type: String,
+    },
+  ],
   createdAt: {
     type: Date,
     default: Date.now,

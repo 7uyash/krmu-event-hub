@@ -74,6 +74,7 @@ router.post(
           name: student.name,
           email: student.email,
           rollNumber: student.rollNumber,
+        school: student.school,
           department: student.department,
           role: 'student',
         },
@@ -112,6 +113,9 @@ router.post(
       if (!isMatch) {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
+      if (student.status === 'disabled') {
+        return res.status(403).json({ message: 'Account is disabled. Contact admin.' });
+      }
 
       // Generate token
       const token = generateToken(student._id);
@@ -124,6 +128,7 @@ router.post(
           name: student.name,
           email: student.email,
           rollNumber: student.rollNumber,
+        school: student.school,
           department: student.department,
           role: 'student',
         },
@@ -287,6 +292,9 @@ router.post(
           message: 'Student not found. Please register first.',
         });
       }
+      if (student.status === 'disabled') {
+        return res.status(403).json({ message: 'Account is disabled. Contact admin.' });
+      }
 
       // Mark OTP as verified and delete others for this purpose
       otp.verified = true;
@@ -304,6 +312,7 @@ router.post(
           name: student.name,
           email: student.email,
           rollNumber: student.rollNumber,
+          school: student.school,
           department: student.department,
           role: 'student',
         },
@@ -329,6 +338,9 @@ router.get('/me', async (req, res) => {
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
+    if (student.status === 'disabled') {
+      return res.status(403).json({ message: 'Account is disabled. Contact admin.' });
+    }
 
     res.json({
       user: {
@@ -336,6 +348,7 @@ router.get('/me', async (req, res) => {
         name: student.name,
         email: student.email,
         rollNumber: student.rollNumber,
+        school: student.school,
         department: student.department,
         role: student.role || 'student',
       },

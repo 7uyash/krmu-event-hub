@@ -2,6 +2,8 @@ import express from 'express';
 import { body, validationResult } from 'express-validator';
 import jwt from 'jsonwebtoken';
 import SupportTicket from '../models/SupportTicket.js';
+import Student from '../models/Student.js';
+import { logAudit } from '../lib/audit.js';
 
 const router = express.Router();
 
@@ -36,6 +38,14 @@ router.post(
         category: req.body.category,
         subject: req.body.subject,
         message: req.body.message,
+      });
+      const actor = await Student.findById(req.userId).select('email');
+      await logAudit({
+        actorUserId: req.userId,
+        actorEmail: actor?.email,
+        action: 'SUPPORT_TICKET',
+        detail: `Created support ticket: ${ticket.subject}`,
+        meta: { ticketId: ticket._id.toString(), category: ticket.category },
       });
 
       res.status(201).json({ message: 'Ticket created', ticket });

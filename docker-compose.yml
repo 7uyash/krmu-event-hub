@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - ./server/.env
+    # The backend will not be directly exposed to the internet. 
+    # Instead, the Nginx container proxies all /api requests to it internally.
+    expose:
+      - "3000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend

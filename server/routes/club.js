@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import Student from '../models/Student.js';
 import Event from '../models/Event.js';
 import ClubMembership from '../models/ClubMembership.js';
+import ClubProfile from '../models/ClubProfile.js';
+import { logAudit } from '../lib/audit.js';
 
 const router = express.Router();
 
@@ -33,17 +35,60 @@ router.get('/profile', authenticate, requireClub, async (req, res) => {
       Event.countDocuments({ createdBy: req.userId, isClubOnly: true }),
       ClubMembership.countDocuments({ clubUserId: req.userId, status: 'active' }),
     ]);
+    let profile = await ClubProfile.findOne({ clubUserId: req.userId });
+    if (!profile) {
+      profile = await ClubProfile.create({
+        clubUserId: req.userId,
+        name: user.name,
+        description: user.department ? `${user.department} Club` : 'Club profile',
+        contactEmail: user.email,
+      });
+    }
 
     res.json({
       club: {
         id: user._id.toString(),
-        name: user.name,
-        description: user.department ? `${user.department} Club` : 'Club profile',
-        adminEmail: user.email,
+        name: profile.name || user.name,
+        description: profile.description || '',
+        adminEmail: profile.contactEmail || user.email,
+        logoUrl: profile.logoUrl || '',
+        socialLinks: profile.socialLinks || {},
         memberCount: membersCount,
         events: eventsCount,
       },
     });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+router.put('/profile', authenticate, requireClub, async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    const user = await Student.findById(req.userId);
+    if (!user) return res.status(404).json({ message: 'Club user not found' });
+    if (name) user.name = name;
+    await user.save();
+    const profile = await ClubProfile.findOneAndUpdate(
+      { clubUserId: req.userId },
+      {
+        $set: {
+          name: name || user.name,
+          description: description || '',
+          contactEmail: user.email,
+          updatedAt: new Date(),
+        },
+      },
+      { upsert: true, new: true }
+    );
+    await logAudit({
+      actorUserId: req.userId,
+      actorEmail: user.email,
+      action: 'CLUB_PROFILE_UPDATE',
+      detail: `Updated club profile for ${profile.name || user.name}`,
+      meta: { clubUserId: req.userId.toString() },
+    });
+    res.json({ message: 'Club profile updated' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -99,6 +144,14 @@ router.post('/members/import', authenticate, requireClub, async (req, res) => {
         // ignore duplicates/errors for individual records
       }
     }
+    const user = await Student.findById(req.userId).select('email');
+    await logAudit({
+      actorUserId: req.userId,
+      actorEmail: user?.email,
+      action: 'CLUB_MEMBER_IMPORT',
+      detail: `Imported ${imported} members via roll list`,
+      meta: { imported, matched: students.length },
+    });
 
     res.json({ message: 'Import completed', imported, matched: students.length });
   } catch (error) {
@@ -116,12 +169,22 @@ router.patch('/members/:memberId', authenticate, requireClub, async (req, res) =
 
     if (req.body.action === 'remove') {
       await ClubMembership.deleteOne({ _id: member._id });
+      await logAudit({
+        actorUserId: req.userId,
+        action: 'CLUB_MEMBER_REMOVE',
+        detail: `Removed member ${member.studentId?.toString?.() || ''}`,
+      });
       return res.json({ message: 'Member removed' });
     }
 
     if (req.body.status && ['active', 'pending'].includes(req.body.status)) {
       member.status = req.body.status;
       await member.save();
+      await logAudit({
+        actorUserId: req.userId,
+        action: 'CLUB_MEMBER_STATUS',
+        detail: `Updated membership status to ${member.status}`,
+      });
       return res.json({ message: 'Member updated' });
     }
 

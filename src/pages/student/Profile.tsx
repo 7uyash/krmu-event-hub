@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { api } from '@/lib/api';
 
 export default function Profile() {
   const { user } = useAuth();
@@ -114,6 +115,19 @@ export default function Profile() {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">Roll number cannot be changed</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="school">School</Label>
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="school"
+                    value={user?.school || ''}
+                    disabled
+                    className="pl-10 bg-muted"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">

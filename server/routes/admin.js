@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import Event from '../models/Event.js';
 import Student from '../models/Student.js';
 import SystemSetting from '../models/SystemSetting.js';
+import AuditLog from '../models/AuditLog.js';
+import { logAudit } from '../lib/audit.js';
 
 const router = express.Router();
 
@@ -30,11 +32,18 @@ const requireAdmin = (req, res, next) => {
 // Admin: list all events (basic filters)
 router.get('/events', authenticate, requireAdmin, async (req, res) => {
   try {
-    const { q, status, category } = req.query;
+    const { q, status, category, fromDate, toDate, isOpen } = req.query;
 
     const filter = {};
     if (status && status !== 'all') filter.status = status;
     if (category && category !== 'all') filter.category = category;
+    if (isOpen === 'true') filter.isOpen = true;
+    if (isOpen === 'false') filter.isOpen = false;
+    if (fromDate || toDate) {
+      filter.date = {};
+      if (fromDate) filter.date.$gte = new Date(fromDate);
+      if (toDate) filter.date.$lte = new Date(toDate);
+    }
     if (q) {
       const s = String(q).trim();
       if (s) {
@@ -83,6 +92,50 @@ router.get('/users', authenticate, requireAdmin, async (req, res) => {
   }
 });
 
+router.patch('/users/:userId/role', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { role } = req.body;
+    if (!['student', 'coordinator', 'convenor', 'club', 'admin'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role' });
+    }
+    const user = await Student.findById(req.params.userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    user.role = role;
+    await user.save();
+    await logAudit({
+      actorUserId: req.userId,
+      action: 'ROLE_CHANGE',
+      detail: `Changed ${user.email} role to ${role}`,
+      meta: { userId: user._id.toString(), role },
+    });
+    res.json({ message: 'Role updated', user });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+router.patch('/users/:userId/status', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['active', 'disabled'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+    const user = await Student.findById(req.params.userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    user.status = status;
+    await user.save();
+    await logAudit({
+      actorUserId: req.userId,
+      action: 'USER_STATUS',
+      detail: `Set ${user.email} status to ${status}`,
+      meta: { userId: user._id.toString(), status },
+    });
+    res.json({ message: 'Status updated', user });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Admin: departments overview (derived from Event.organizerDepartment)
 router.get('/departments', authenticate, requireAdmin, async (req, res) => {
   try {
@@ -117,9 +170,28 @@ router.get('/departments', authenticate, requireAdmin, async (req, res) => {
   }
 });
 
-// Admin: audit logs (stub for now)
+// Admin: audit logs (immutable event stream)
 router.get('/audit-logs', authenticate, requireAdmin, async (req, res) => {
-  res.json({ logs: [] });
+  try {
+    const rows = await AuditLog.find()
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .populate('actorUserId', 'email name')
+      .select('-__v');
+
+    const logs = rows.map((r) => ({
+      id: r._id.toString(),
+      at: r.createdAt,
+      actor: r.actorEmail || r.actorUserId?.email || r.actorUserId?.name || 'system',
+      action: r.action,
+      detail: r.detail,
+      meta: r.meta,
+    }));
+
+    res.json({ logs });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
 });
 
 router.get('/system-settings', authenticate, requireAdmin, async (_req, res) => {
@@ -143,6 +215,17 @@ router.put('/system-settings', authenticate, requireAdmin, async (req, res) => {
     settings.defaultAttendancePolicy = req.body.defaultAttendancePolicy === 'strict' ? 'strict' : 'normal';
     settings.updatedAt = new Date();
     await settings.save();
+    await logAudit({
+      actorUserId: req.userId,
+      action: 'SYSTEM_SETTINGS',
+      detail: 'Updated system settings',
+      meta: {
+        maintenanceMode: settings.maintenanceMode,
+        lockRegistrations: settings.lockRegistrations,
+        require2FA: settings.require2FA,
+        defaultAttendancePolicy: settings.defaultAttendancePolicy,
+      },
+    });
 
     res.json({ message: 'Settings updated', settings });
   } catch (error) {

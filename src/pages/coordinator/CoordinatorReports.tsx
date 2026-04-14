@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { exportToCSV, exportToExcel } from "@/lib/export";
 
 type ReportRow = {
   id: string;
+  eventId: string;
   eventTitle: string;
   createdAt: string;
   format: "CSV" | "Excel";
@@ -29,6 +31,7 @@ export default function CoordinatorReports() {
         const rows: ReportRow[] = (eventsRes.events || []).flatMap((e: any) => [
           {
             id: `${e._id || e.id}-csv`,
+            eventId: (e._id || e.id).toString(),
             eventTitle: e.title,
             createdAt: e.createdAt || e.date,
             format: "CSV",
@@ -36,6 +39,7 @@ export default function CoordinatorReports() {
           },
           {
             id: `${e._id || e.id}-xlsx`,
+            eventId: (e._id || e.id).toString(),
             eventTitle: e.title,
             createdAt: e.createdAt || e.date,
             format: "Excel",
@@ -128,7 +132,28 @@ export default function CoordinatorReports() {
                       </TableCell>
                       <TableCell className="text-right">{r.rows.toLocaleString()}</TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" variant="outline">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={async () => {
+                            try {
+                              const regRes = await api.eventsAdmin.getEventRegistrations(r.eventId);
+                              const formatted = (regRes.registrations || []).map((x: any) => ({
+                                rollNumber: x.userId?.rollNumber || "",
+                                name: x.userId?.name || "",
+                                email: x.userId?.email || "",
+                                department: x.userId?.department || "",
+                                registeredAt: x.registeredAt ? new Date(x.registeredAt).toLocaleString() : "",
+                                attendanceStatus: x.attendanceStatus || "pending",
+                                markedAt: x.markedAt ? new Date(x.markedAt).toLocaleString() : "",
+                              }));
+                              if (r.format === "CSV") exportToCSV(formatted, `${r.eventTitle}-attendance`);
+                              else exportToExcel(formatted, `${r.eventTitle}-attendance`);
+                            } catch (err: any) {
+                              toast.error(err.message || "Failed to export");
+                            }
+                          }}
+                        >
                           <Download className="h-4 w-4 mr-2" />
                           Download
                         </Button>

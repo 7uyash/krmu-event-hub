@@ -4,11 +4,13 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 
 export default function ClubMemberImport() {
   const [rollsText, setRollsText] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const parsed = useMemo(() => {
     return rollsText
       .split(/[,\n\r]+/g)
@@ -38,16 +40,53 @@ export default function ClubMemberImport() {
                 <p className="font-medium">Drop your CSV here</p>
                 <p className="text-sm text-muted-foreground mt-1">Expected column: `rollNumber`</p>
               </div>
-              <Button disabled className="w-full">
-                Upload CSV (disabled)
+              <Input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setIsUploading(true);
+                  try {
+                    const text = await file.text();
+                    const tokens = text
+                      .split(/[,\n\r]+/g)
+                      .map((s) => s.trim())
+                      .filter(Boolean)
+                      .filter((x) => /^\d/.test(x) && x.length >= 4);
+                    if (tokens.length === 0) {
+                      toast.error("No roll numbers found in CSV");
+                      return;
+                    }
+                    const res = await api.club.importMembers(tokens);
+                    toast.success(`Imported ${res.imported || 0} members from CSV`);
+                  } catch (err: any) {
+                    toast.error(err.message || "CSV upload failed");
+                  } finally {
+                    setIsUploading(false);
+                    e.currentTarget.value = "";
+                  }
+                }}
+              />
+              <Button disabled={isUploading} className="w-full">
+                {isUploading ? "Uploading..." : "Upload CSV"}
               </Button>
               <Button
                 variant="outline"
-                disabled
                 className="w-full"
+                onClick={() => {
+                  const template = "rollNumber\n2023001\n2023002\n";
+                  const blob = new Blob([template], { type: "text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = "club-members-template.csv";
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
               >
                 <Download className="h-4 w-4 mr-2" />
-                Download template (disabled)
+                Download template
               </Button>
             </CardContent>
           </Card>

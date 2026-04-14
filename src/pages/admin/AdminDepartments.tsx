@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { exportToCSV } from "@/lib/export";
 
 type DepartmentRow = {
   name: string;
@@ -55,7 +56,23 @@ export default function AdminDepartments() {
             <Button variant="outline" asChild>
               <Link to="/admin">Back to Overview</Link>
             </Button>
-            <Button variant="outline" disabled>
+            <Button
+              variant="outline"
+              onClick={() =>
+                exportToCSV(
+                  rows.map((d) => ({
+                    rollNumber: d.name,
+                    name: d.name,
+                    email: `${d.events} events`,
+                    department: d.name,
+                    registeredAt: `${d.registrations}`,
+                    attendanceStatus: `${d.attendanceRate}%`,
+                    markedAt: "",
+                  })),
+                  "departments-report"
+                )
+              }
+            >
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>

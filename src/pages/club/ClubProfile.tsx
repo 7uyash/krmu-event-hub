@@ -10,11 +10,15 @@ import { toast } from "sonner";
 export default function ClubProfile() {
   const [club, setClub] = useState<any>(null);
   const [editable, setEditable] = useState(false);
+  const [draft, setDraft] = useState({ name: "", description: "" });
 
   useEffect(() => {
     api.club
       .getProfile()
-      .then((res) => setClub(res.club))
+      .then((res) => {
+        setClub(res.club);
+        setDraft({ name: res.club?.name || "", description: res.club?.description || "" });
+      })
       .catch((err: any) => toast.error(err.message || "Failed to load club profile"));
   }, []);
 
@@ -75,14 +79,22 @@ export default function ClubProfile() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">{club?.name || "Club"}</CardTitle>
+            <CardTitle className="text-base">{editable ? draft.name || "Club" : club?.name || "Club"}</CardTitle>
             <CardDescription>Club description and settings.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-start justify-between gap-4 flex-col sm:flex-row">
               <div className="min-w-0">
                 <p className="text-sm text-muted-foreground">About</p>
-                <p className="mt-2 font-medium">{club?.description || "—"}</p>
+                {editable ? (
+                  <textarea
+                    className="mt-2 w-full rounded-md border p-2 text-sm"
+                    value={draft.description}
+                    onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
+                  />
+                ) : (
+                  <p className="mt-2 font-medium">{club?.description || "—"}</p>
+                )}
               </div>
               <div className="flex gap-2 flex-wrap">
                 <Badge variant="secondary">Approved</Badge>
@@ -96,7 +108,21 @@ export default function ClubProfile() {
                 Editing controls are connected and can be extended with additional club metadata.
               </p>
               <div className="pt-3">
-                <Button disabled={!editable}>Save club changes</Button>
+                <Button
+                  disabled={!editable}
+                  onClick={() =>
+                    api.club
+                      .updateProfile(draft)
+                      .then(() => {
+                        setClub((prev: any) => ({ ...prev, ...draft }));
+                        setEditable(false);
+                        toast.success("Club profile updated");
+                      })
+                      .catch((err: any) => toast.error(err.message || "Failed to save profile"))
+                  }
+                >
+                  Save club changes
+                </Button>
               </div>
             </div>
           </CardContent>

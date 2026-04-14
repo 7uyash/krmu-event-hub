@@ -53,6 +53,29 @@ export default function AdminUsers() {
     return users;
   }, [users]);
 
+  const handleRoleChange = async (id: string, currentRole: UserRole) => {
+    const order: UserRole[] = ["student", "coordinator", "convenor", "club", "admin"];
+    const nextRole = order[(order.indexOf(currentRole) + 1) % order.length];
+    try {
+      await api.admin.updateUserRole(id, nextRole);
+      setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role: nextRole } : u)));
+      toast.success(`Role updated to ${nextRole}`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update role");
+    }
+  };
+
+  const handleStatusToggle = async (id: string, status?: "active" | "disabled") => {
+    const nextStatus: "active" | "disabled" = status === "disabled" ? "active" : "disabled";
+    try {
+      await api.admin.updateUserStatus(id, nextStatus);
+      setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, status: nextStatus } : u)));
+      toast.success(`User ${nextStatus}`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update status");
+    }
+  };
+
   return (
     <DashboardLayout role="admin" userName="Super Admin">
       <div className="space-y-6">
@@ -154,11 +177,11 @@ export default function AdminUsers() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button size="sm" variant="outline" disabled>
-                            Change role
+                          <Button size="sm" variant="outline" onClick={() => handleRoleChange(u.id, u.role)}>
+                            Next role
                           </Button>
-                          <Button size="sm" variant="outline" disabled>
-                            Disable
+                          <Button size="sm" variant="outline" onClick={() => handleStatusToggle(u.id, u.status)}>
+                            {u.status === "disabled" ? "Enable" : "Disable"}
                           </Button>
                         </div>
                       </TableCell>

@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { api } from "@/lib/api";
 import { Event } from "@/types";
 import { toast } from "sonner";
+import { exportToCSV } from "@/lib/export";
 
 export default function ClubEvents() {
   const [q, setQ] = useState("");
@@ -60,7 +61,23 @@ export default function ClubEvents() {
                 Create Event
               </Link>
             </Button>
-            <Button variant="outline" disabled>
+            <Button
+              variant="outline"
+              onClick={() =>
+                exportToCSV(
+                  rows.map((e: any) => ({
+                    rollNumber: (e._id || e.id || "").toString(),
+                    name: e.title,
+                    email: e.organizer || "",
+                    department: e.organizerDepartment || "",
+                    registeredAt: `${e.registeredCount || 0}`,
+                    attendanceStatus: e.status || "",
+                    markedAt: e.date || "",
+                  })),
+                  "club-events"
+                )
+              }
+            >
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
@@ -127,10 +144,44 @@ export default function ClubEvents() {
                       <TableCell className="text-right">{e.registeredCount || 0}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button size="sm" variant="outline" disabled>
-                            Manage
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              api.eventsAdmin
+                                .updateEventStatus((e._id || e.id).toString(), { status: "ongoing" })
+                                .then(() =>
+                                  setEvents((prev) =>
+                                    prev.map((x: any) =>
+                                      (x._id || x.id).toString() === (e._id || e.id).toString()
+                                        ? { ...x, status: "ongoing" }
+                                        : x
+                                    )
+                                  )
+                                )
+                                .catch((err: any) => toast.error(err.message || "Failed to update event"))
+                            }
+                          >
+                            Set Ongoing
                           </Button>
-                          <Button size="sm" variant="outline" disabled>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              api.eventsAdmin
+                                .updateEventStatus((e._id || e.id).toString(), { status: "completed", isOpen: false })
+                                .then(() =>
+                                  setEvents((prev) =>
+                                    prev.map((x: any) =>
+                                      (x._id || x.id).toString() === (e._id || e.id).toString()
+                                        ? { ...x, status: "completed", isOpen: false }
+                                        : x
+                                    )
+                                  )
+                                )
+                                .catch((err: any) => toast.error(err.message || "Failed to close event"))
+                            }
+                          >
                             Close
                           </Button>
                         </div>

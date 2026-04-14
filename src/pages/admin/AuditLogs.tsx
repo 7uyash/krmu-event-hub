@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 
-type ActionType = "LOGIN" | "EVENT_CREATE" | "ATTENDANCE_MARK" | "ROLE_CHANGE" | "EXPORT";
+type ActionType = "LOGIN" | "EVENT_CREATE" | "ATTENDANCE_MARK" | "ROLE_CHANGE" | "EXPORT" | "SUPPORT_TICKET" | "USER_REGISTER";
 
 type LogRow = {
   id: string;
@@ -102,7 +102,7 @@ export default function AuditLogs() {
               <Button size="sm" variant={type === "all" ? "default" : "outline"} onClick={() => setType("all")}>
                 All
               </Button>
-              {(["LOGIN", "EVENT_CREATE", "ATTENDANCE_MARK", "ROLE_CHANGE", "EXPORT"] as ActionType[]).map((t) => (
+              {(["LOGIN", "EVENT_CREATE", "ATTENDANCE_MARK", "ROLE_CHANGE", "EXPORT", "SUPPORT_TICKET", "USER_REGISTER"] as ActionType[]).map((t) => (
                 <Button key={t} size="sm" variant={type === t ? "default" : "outline"} onClick={() => setType(t)}>
                   <Filter className="h-4 w-4 mr-2" />
                   {t}

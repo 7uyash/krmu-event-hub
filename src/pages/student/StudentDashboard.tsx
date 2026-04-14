@@ -65,6 +65,22 @@ export default function StudentDashboard() {
           <p className="text-muted-foreground">Track your events and participation</p>
         </div>
 
+        {!user?.school && (
+          <Card>
+            <CardContent className="p-4 flex items-center justify-between gap-3 flex-col sm:flex-row">
+              <div>
+                <p className="font-medium">Complete your academic and club setup</p>
+                <p className="text-sm text-muted-foreground">
+                  Choose your school/department and clubs to get relevant recommendations.
+                </p>
+              </div>
+              <Button asChild>
+                <Link to="/student/academic-clubs">Setup Now</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard

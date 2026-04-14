@@ -20,6 +20,7 @@ import Profile from "./pages/student/Profile";
 import StudentNotifications from "./pages/student/Notifications";
 import StudentSettings from "./pages/student/Settings";
 import StudentSupport from "./pages/student/Support";
+import AcademicClubs from "./pages/student/AcademicClubs";
 
 // Coordinator Pages
 import CoordinatorDashboard from "./pages/coordinator/CoordinatorDashboard";
@@ -56,8 +57,8 @@ import SystemSettings from "./pages/admin/SystemSettings";
 const queryClient = new QueryClient();
 
 // Protected Route Component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) => {
+  const { isAuthenticated, isLoading, user } = useAuth();
   
   if (isLoading) {
     return (
@@ -72,6 +73,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   
   if (!isAuthenticated) {
     return <Navigate to="/auth/student" replace />;
+  }
+
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    return <Navigate to={`/${user.role}`} replace />;
   }
   
   return <>{children}</>;
@@ -93,7 +98,7 @@ const App = () => (
             <Route
               path="/student"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={["student"]}>
                   <StudentDashboard />
                 </ProtectedRoute>
               }
@@ -101,7 +106,7 @@ const App = () => (
             <Route
               path="/student/events"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={["student"]}>
                   <StudentEvents />
                 </ProtectedRoute>
               }
@@ -109,7 +114,7 @@ const App = () => (
             <Route
               path="/student/events/:eventId"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={["student"]}>
                   <EventDetails />
                 </ProtectedRoute>
               }
@@ -117,7 +122,7 @@ const App = () => (
             <Route
               path="/student/registrations"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={["student"]}>
                   <StudentRegistrations />
                 </ProtectedRoute>
               }
@@ -125,7 +130,7 @@ const App = () => (
             <Route
               path="/student/attendance"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={["student"]}>
                   <StudentAttendance />
                 </ProtectedRoute>
               }
@@ -133,7 +138,7 @@ const App = () => (
             <Route
               path="/student/profile"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={["student"]}>
                   <Profile />
                 </ProtectedRoute>
               }
@@ -142,7 +147,7 @@ const App = () => (
             <Route
               path="/student/notifications"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={["student"]}>
                   <StudentNotifications />
                 </ProtectedRoute>
               }
@@ -150,7 +155,7 @@ const App = () => (
             <Route
               path="/student/settings"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={["student"]}>
                   <StudentSettings />
                 </ProtectedRoute>
               }
@@ -158,44 +163,52 @@ const App = () => (
             <Route
               path="/student/support"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={["student"]}>
                   <StudentSupport />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/academic-clubs"
+              element={
+                <ProtectedRoute allowedRoles={["student"]}>
+                  <AcademicClubs />
                 </ProtectedRoute>
               }
             />
 
           {/* Coordinator Routes */}
-          <Route path="/coordinator" element={<CoordinatorDashboard />} />
-          <Route path="/coordinator/events" element={<CoordinatorEvents />} />
-          <Route path="/coordinator/scan" element={<ScanAttendance />} />
-          <Route path="/coordinator/manual" element={<ManualEntry />} />
-          <Route path="/coordinator/events/:eventId/registrations" element={<CoordinatorEventRegistrations />} />
-          <Route path="/coordinator/reports" element={<CoordinatorReports />} />
+          <Route path="/coordinator" element={<ProtectedRoute allowedRoles={["coordinator"]}><CoordinatorDashboard /></ProtectedRoute>} />
+          <Route path="/coordinator/events" element={<ProtectedRoute allowedRoles={["coordinator"]}><CoordinatorEvents /></ProtectedRoute>} />
+          <Route path="/coordinator/scan" element={<ProtectedRoute allowedRoles={["coordinator"]}><ScanAttendance /></ProtectedRoute>} />
+          <Route path="/coordinator/manual" element={<ProtectedRoute allowedRoles={["coordinator"]}><ManualEntry /></ProtectedRoute>} />
+          <Route path="/coordinator/events/:eventId/registrations" element={<ProtectedRoute allowedRoles={["coordinator"]}><CoordinatorEventRegistrations /></ProtectedRoute>} />
+          <Route path="/coordinator/reports" element={<ProtectedRoute allowedRoles={["coordinator"]}><CoordinatorReports /></ProtectedRoute>} />
 
           {/* Convenor Routes */}
-          <Route path="/convenor" element={<ConvenorDashboard />} />
-          <Route path="/convenor/create" element={<CreateEvent />} />
-          <Route path="/convenor/events" element={<ConvenorEvents />} />
-          <Route path="/convenor/analytics" element={<ConvenorAnalytics />} />
-          <Route path="/convenor/events/:eventId/registrations" element={<ConvenorEventRegistrations />} />
-          <Route path="/convenor/events/:eventId/close" element={<ConvenorCloseEvent />} />
+          <Route path="/convenor" element={<ProtectedRoute allowedRoles={["convenor"]}><ConvenorDashboard /></ProtectedRoute>} />
+          <Route path="/convenor/create" element={<ProtectedRoute allowedRoles={["convenor"]}><CreateEvent /></ProtectedRoute>} />
+          <Route path="/convenor/events" element={<ProtectedRoute allowedRoles={["convenor"]}><ConvenorEvents /></ProtectedRoute>} />
+          <Route path="/convenor/analytics" element={<ProtectedRoute allowedRoles={["convenor"]}><ConvenorAnalytics /></ProtectedRoute>} />
+          <Route path="/convenor/events/:eventId/registrations" element={<ProtectedRoute allowedRoles={["convenor"]}><ConvenorEventRegistrations /></ProtectedRoute>} />
+          <Route path="/convenor/events/:eventId/close" element={<ProtectedRoute allowedRoles={["convenor"]}><ConvenorCloseEvent /></ProtectedRoute>} />
 
           {/* Club Routes */}
-          <Route path="/club" element={<ClubDashboard />} />
-          <Route path="/club/create" element={<CreateEvent />} />
-          <Route path="/club/profile" element={<ClubProfile />} />
-          <Route path="/club/members" element={<ClubMembers />} />
-          <Route path="/club/events" element={<ClubEvents />} />
-          <Route path="/club/members/import" element={<ClubMemberImport />} />
+          <Route path="/club" element={<ProtectedRoute allowedRoles={["club"]}><ClubDashboard /></ProtectedRoute>} />
+          <Route path="/club/create" element={<ProtectedRoute allowedRoles={["club"]}><CreateEvent /></ProtectedRoute>} />
+          <Route path="/club/profile" element={<ProtectedRoute allowedRoles={["club"]}><ClubProfile /></ProtectedRoute>} />
+          <Route path="/club/members" element={<ProtectedRoute allowedRoles={["club"]}><ClubMembers /></ProtectedRoute>} />
+          <Route path="/club/events" element={<ProtectedRoute allowedRoles={["club"]}><ClubEvents /></ProtectedRoute>} />
+          <Route path="/club/members/import" element={<ProtectedRoute allowedRoles={["club"]}><ClubMemberImport /></ProtectedRoute>} />
 
           {/* Admin Routes */}
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/events" element={<AdminEvents />} />
-          <Route path="/admin/users" element={<AdminUsers />} />
-          <Route path="/admin/departments" element={<AdminDepartments />} />
-          <Route path="/admin/analytics" element={<AdminAnalytics />} />
-          <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
-          <Route path="/admin/system-settings" element={<SystemSettings />} />
+          <Route path="/admin" element={<ProtectedRoute allowedRoles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/events" element={<ProtectedRoute allowedRoles={["admin"]}><AdminEvents /></ProtectedRoute>} />
+          <Route path="/admin/users" element={<ProtectedRoute allowedRoles={["admin"]}><AdminUsers /></ProtectedRoute>} />
+          <Route path="/admin/departments" element={<ProtectedRoute allowedRoles={["admin"]}><AdminDepartments /></ProtectedRoute>} />
+          <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={["admin"]}><AdminAnalytics /></ProtectedRoute>} />
+          <Route path="/admin/audit-logs" element={<ProtectedRoute allowedRoles={["admin"]}><AdminAuditLogs /></ProtectedRoute>} />
+          <Route path="/admin/system-settings" element={<ProtectedRoute allowedRoles={["admin"]}><SystemSettings /></ProtectedRoute>} />
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />

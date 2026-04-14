@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import Event from '../models/Event.js';
 import Registration from '../models/Registration.js';
 import Student from '../models/Student.js';
+import { logAudit } from '../lib/audit.js';
 
 const router = express.Router();
 
@@ -88,6 +89,13 @@ router.post('/', authenticate, [
     });
 
     await event.save();
+    await logAudit({
+      actorUserId: req.userId,
+      actorEmail: user.email,
+      action: 'EVENT_CREATE',
+      detail: `Created event: ${event.title}`,
+      meta: { eventId: event._id.toString(), category: event.category },
+    });
 
     res.status(201).json({
       message: 'Event created successfully',
@@ -160,6 +168,14 @@ router.patch('/:eventId/status', authenticate, async (req, res) => {
     event.status = status;
     if (typeof isOpen === 'boolean') event.isOpen = isOpen;
     await event.save();
+    const actor = await Student.findById(req.userId).select('email');
+    await logAudit({
+      actorUserId: req.userId,
+      actorEmail: actor?.email,
+      action: 'EVENT_STATUS_UPDATE',
+      detail: `Updated event status to ${status} for ${event.title}`,
+      meta: { eventId: event._id.toString(), status, isOpen: event.isOpen },
+    });
 
     res.json({
       message: 'Event status updated',

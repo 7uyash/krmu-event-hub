@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { exportToCSV } from "@/lib/export";
 
 type Member = {
   id: string;
@@ -45,11 +46,29 @@ export default function ClubMembers() {
             <Button variant="outline" asChild>
               <Link to="/club">Back to Dashboard</Link>
             </Button>
-            <Button variant="outline" disabled>
+            <Button variant="outline" asChild>
+              <Link to="/club/members/import">
               <Upload className="h-4 w-4 mr-2" />
               Upload CSV
+              </Link>
             </Button>
-            <Button variant="outline" disabled>
+            <Button
+              variant="outline"
+              onClick={() =>
+                exportToCSV(
+                  rows.map((m) => ({
+                    rollNumber: m.rollNumber,
+                    name: m.name,
+                    email: "",
+                    department: m.department,
+                    registeredAt: "",
+                    attendanceStatus: m.status,
+                    markedAt: "",
+                  })),
+                  "club-members"
+                )
+              }
+            >
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>

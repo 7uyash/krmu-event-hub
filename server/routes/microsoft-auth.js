@@ -92,6 +92,9 @@ router.post('/microsoft/callback', async (req, res) => {
       await student.save();
     } else {
       // Update existing student with Microsoft info
+      if (student.status === 'disabled') {
+        return res.status(403).json({ message: 'Account is disabled. Contact admin.' });
+      }
       student.name = microsoftUser.displayName || student.name;
       student.microsoftId = microsoftUser.id;
       if (normalizedRequestedRole) {
@@ -114,6 +117,7 @@ router.post('/microsoft/callback', async (req, res) => {
         name: student.name,
         email: student.email,
         rollNumber: student.rollNumber,
+        school: student.school,
         department: student.department,
         role: student.role || 'student',
       },

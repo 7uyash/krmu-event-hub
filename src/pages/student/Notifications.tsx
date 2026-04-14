@@ -57,10 +57,15 @@ export default function StudentNotifications() {
             </Badge>
             <Button
               variant="outline"
-              onClick={() => {
-                setItems((prev) => prev.map((x) => ({ ...x, read: true })));
-                toast.success("All notifications marked as read");
-              }}
+              onClick={() =>
+                api.profile
+                  .markAllNotificationsRead()
+                  .then(() => {
+                    setItems((prev) => prev.map((x) => ({ ...x, read: true })));
+                    toast.success("All notifications marked as read");
+                  })
+                  .catch((err: any) => toast.error(err.message || "Failed to update notifications"))
+              }
               disabled={unreadCount === 0}
             >
               <CheckCircle className="h-4 w-4 mr-2" />
@@ -124,8 +129,13 @@ export default function StudentNotifications() {
                     size="sm"
                     disabled={n.read}
                     onClick={() => {
-                      setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
-                      toast.success("Marked as read");
+                      api.profile
+                        .markNotificationRead(n.id)
+                        .then(() => {
+                          setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+                          toast.success("Marked as read");
+                        })
+                        .catch((err: any) => toast.error(err.message || "Failed to update notification"));
                     }}
                   >
                     Mark read

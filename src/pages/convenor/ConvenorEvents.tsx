@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { api } from "@/lib/api";
 import { Event } from "@/types";
 import { toast } from "sonner";
+import { exportToCSV, exportToExcel } from "@/lib/export";
 
 export default function ConvenorEvents() {
   const [q, setQ] = useState("");
@@ -85,11 +86,43 @@ export default function ConvenorEvents() {
                 </CardDescription>
               </div>
               <div className="flex gap-2 flex-wrap">
-                <Button variant="outline" disabled>
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    exportToCSV(
+                      rows.map((e: any) => ({
+                        rollNumber: (e._id || e.id || "").toString(),
+                        name: e.title,
+                        email: e.organizer || "",
+                        department: e.organizerDepartment || "",
+                        registeredAt: `${e.registeredCount || 0}`,
+                        attendanceStatus: `${e.attendedCount || 0}`,
+                        markedAt: e.status || "",
+                      })),
+                      "convenor-events"
+                    )
+                  }
+                >
                   <Download className="h-4 w-4 mr-2" />
                   Export CSV
                 </Button>
-                <Button variant="outline" disabled>
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    exportToExcel(
+                      rows.map((e: any) => ({
+                        rollNumber: (e._id || e.id || "").toString(),
+                        name: e.title,
+                        email: e.organizer || "",
+                        department: e.organizerDepartment || "",
+                        registeredAt: `${e.registeredCount || 0}`,
+                        attendanceStatus: `${e.attendedCount || 0}`,
+                        markedAt: e.status || "",
+                      })),
+                      "convenor-events"
+                    )
+                  }
+                >
                   <Download className="h-4 w-4 mr-2" />
                   Export Excel
                 </Button>

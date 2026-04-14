@@ -40,6 +40,7 @@ const roleConfig = {
       { to: '/student/registrations', icon: ClipboardList, label: 'My Registrations' },
       { to: '/student/attendance', icon: BarChart3, label: 'Attendance History' },
       { to: '/student/profile', icon: UserCircle, label: 'Profile' },
+      { to: '/student/academic-clubs', icon: Building2, label: 'Academic & Clubs' },
     ],
   },
   coordinator: {
